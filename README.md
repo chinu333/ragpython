@@ -62,5 +62,15 @@ Guide users through getting your code up and running on their own system. In thi
         - **Important**: Python and the pip package manager must be in the path in Windows for the setup scripts to work.
         - **Important**: Ensure you can run `python --version` from console. On Ubuntu, you might need to run `sudo apt install python-is-python3` to link `python` to `python3`. 
 5. Import the requirements.txt `pip install -r requirements.txt`
-6. Add your question(s) in 'questions' variable (line 261)
+6. Add your question(s) in 'user_questions' variable (copilot_agents.py, line 261)
 7. Run the ```python copilot_agents.py``` to run
+
+## Contributing
+
+We welcome contributions to enhance the capabilities of the Agentic Framework. Please follow the standard GitHub workflow for contributing:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Commit your changes (`git commit -m 'Add new feature'`).
+4. Push to the branch (`git push origin feature-branch`).
+5. Open a pull request.

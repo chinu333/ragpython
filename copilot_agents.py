@@ -258,9 +258,9 @@ graph = builder.compile(checkpointer=memory)
 import uuid
 
 # Let's create an example conversation a user might have with the assistant
-tutorial_questions = [
+user_questions = [
     # 'RAG: What was Microsoft\'s cloud revenue for 2024?',
-    # 'What kind of cloth I need to wear today? I am in Atlanta, GA.',
+    'What kind of cloth I need to wear today? I am in Atlanta, GA.',
     # 'Should I buy Microsoft stock?',
     # 'Compare Google and Tesla stocks and provide a recommendation for which one to buy.',
     # 'How I go from Atlanta to Disney World, FL?',
@@ -269,7 +269,7 @@ tutorial_questions = [
     # 'What are the top 10 most popular products based on quantity sold?',
     # 'Based on the historical stock price of Delta Airlines, please advise if I should buy the stock during holiday season when everyone travels?',
     # 'Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rgXXXX for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png',
-    'Analyze the image. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/Space_Needle.png'
+    # 'Analyze the image. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/Space_Needle.png'
 ]
 
 
@@ -282,7 +282,7 @@ config = {
 }
 
 _printed = set()
-for question in tutorial_questions:
+for question in user_questions:
     events = graph.stream(
         {"messages": ("user", question)}, config, stream_mode="values"
         # {"messages": ("user", question)}, config, stream_mode="updates"
