@@ -4,6 +4,7 @@ import requests_cache
 import pandas as pd
 from retry_requests import retry
 import json
+from openmeteo_sdk.Variable import Variable
 
 
 def get_weather_info(location):
@@ -26,6 +27,7 @@ def get_weather_info(location):
         "latitude": location.latitude,
         "longitude": location.longitude,
         "hourly": "temperature_2m",
+        "current": "temperature_2m",
         "temperature_unit": "fahrenheit"
     }
     responses = openmeteo.weather_api(url, params=params)
@@ -37,10 +39,16 @@ def get_weather_info(location):
     # print(f"Timezone {response.Timezone()} {response.TimezoneAbbreviation()}")
     # print(f"Timezone difference to GMT+0 {response.UtcOffsetSeconds()} s")
 
+    # Process current data. The order of variables needs to be the same as requested.
+    current = response.Current()
+    current_variables = list(map(lambda i: current.Variables(i), range(0, current.VariablesLength())))
+    current_temperature_2m = next(filter(lambda x: x.Variable() == Variable.temperature and x.Altitude() == 2, current_variables))
+    # print(f"Current temperature_2m {current_temperature_2m.Value()}")   
+
+
     # Process hourly data. The order of variables needs to be the same as requested.
     hourly = response.Hourly()
     hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
-
     # print(hourly_temperature_2m)
 
     hourly_data = {"date": pd.date_range(
@@ -56,7 +64,8 @@ def get_weather_info(location):
     json_string = hourly_dataframe.to_json(orient='records')
     # print("Current tempeature at ",  address, " :: ", json.loads(json_string)[0].get("temperature_2m"))
 
-    inttemp = int(json.loads(json_string)[0].get("temperature_2m"))
+    # inttemp = int(json.loads(json_string)[0].get("temperature_2m"))
+    inttemp = int(current_temperature_2m.Value())
     # print("Decimal Temp :: ", inttemp)
 
     return "Current tempeature at ",  location, " :: ", inttemp, "Degree Fahrenheit"

@@ -1,5 +1,3 @@
-# Introduction
-
 # Agentic Framework Implementation
 
 This repository demonstrates the implementation of the Agentic Framework, showcasing six distinct agent capabilities. The agents included are:
@@ -28,7 +26,7 @@ The following technologies are utilized in this repository:
 - **Capabilities**: Combines retrieval-augmented generation to provide accurate and contextually relevant answers.
 
 ### SQL Agent
-- **Purpose**: Interact with SQL databases to execute queries and manage data.
+- **Purpose**: Interact with SQL databases to execute queries and manage data. We are using 'northwind' db for this demo and the db is included under data folder
 - **Capabilities**: Can perform complex queries, and data analysis tasks.
 
 ### Weather Agent
@@ -62,8 +60,9 @@ Guide users through getting your code up and running on their own system. In thi
         - **Important**: Python and the pip package manager must be in the path in Windows for the setup scripts to work.
         - **Important**: Ensure you can run `python --version` from console. On Ubuntu, you might need to run `sudo apt install python-is-python3` to link `python` to `python3`. 
 5. Import the requirements.txt `pip install -r requirements.txt`
-6. Add your question(s) in 'user_questions' variable (copilot_agents.py, line 261)
-7. Run the ```python copilot_agents.py``` to run
+6. Run the ```python ingestion.py``` to vectorize and store `ms10k_2024.txt`file (or you can bring your own file)
+7. Add/Modify your question(s) in `user_questions` variable (copilot_agents.py, line 261)
+8. Run the ```python copilot_agents.py``` to run
 
 ## Contributing
 

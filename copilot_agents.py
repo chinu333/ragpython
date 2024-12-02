@@ -25,7 +25,8 @@ from langgraph.graph import END, START, StateGraph, MessagesState
 from pydantic import BaseModel
 from langchain_core.messages.ai import AIMessage
 from langchain_core.messages.human import HumanMessage
-import python_weather
+from IPython.display import Image, display
+from langchain_core.runnables.graph import MermaidDrawMethod
 
 
 if __name__ == "__main__":
@@ -254,6 +255,14 @@ builder.add_edge("assistant", END) # End with the assistant
 memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
 
+display(
+    Image(
+        graph.get_graph().draw_mermaid_png(
+            draw_method=MermaidDrawMethod.API,
+        )
+    )
+)
+
 # import shutil
 import uuid
 
@@ -294,7 +303,7 @@ for question in user_questions:
         # print("Agent Printed Response :: ", AIMessage(event.get("messages")).json(), "\n")
         lastMessage = event.get("messages")[len(event.get("messages")) - 1]
         
-        if len(lastMessage.content) < 5000 :
+        if len(lastMessage.content) < 10000 :
             # print(lastMessage.content, "\n")
             event.get("messages")[-1].pretty_print()
             print("\n")
