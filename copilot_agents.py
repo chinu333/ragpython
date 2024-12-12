@@ -1,5 +1,4 @@
 from langchain_core.tools import tool
-from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 from typing import Annotated
@@ -15,19 +14,76 @@ from generic import ask_generic_question
 from financial_advisor import get_historical_stock_price
 from executesql import generate_response_from_sql
 from multimodality import analyze_image
+from visualization import get_dataframe
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
+import matplotlib.pyplot as plt
 from azure.core.credentials import AzureKeyCredential
 from langchain_openai import AzureChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import END, START, StateGraph, MessagesState
-from pydantic import BaseModel
-from langchain_core.messages.ai import AIMessage
-from langchain_core.messages.human import HumanMessage
-from IPython.display import Image, display
-from langchain_core.runnables.graph import MermaidDrawMethod
+from langgraph.graph import END, START, StateGraph
+import streamlit as st
+from streamlit_extras.add_vertical_space import add_vertical_space
+import seaborn as sns
+from streamlit_mermaid import st_mermaid
 
+st.set_page_config(layout="wide",page_title="Agentic Copilot Demo")
+st.set_option('deprecation.showPyplotGlobalUse', False)
+styl = f"""
+<style>
+    .stTextInput {{
+      position: fixed;
+      bottom: 3rem;
+    }}
+</style>
+"""
+st.markdown(styl, unsafe_allow_html=True)
+# Sidebar contents
+with st.sidebar:
+
+    st.title('AI Copilot With Agents')
+    st.markdown('''
+    ''')
+
+    add_vertical_space(4)
+    if st.button('Clear Chat'):
+        st.markdown('')
+        if 'history' in st.session_state:
+            st.session_state['history'] = []
+        if 'display_data' in st.session_state:
+            st.session_state['display_data'] = {}
+
+
+    st.markdown("""
+                
+### Sample Questions:
+  
+1. RAG: What was Microsoft\'s cloud revenue for 2024?
+2. What kind of cloth I need to wear today? I am in Atlanta, GA.
+3. Compare Google and Tesla stocks and provide a recommendation for which one to buy.
+4. Tell me something about Quantum Computing.
+5. What are the total sales broken down by country? Show in a pie chart.
+6. What are the top 10 most popular products based on quantity sold?
+7. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png
+8. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes.
+9. Please give me month-wise break up of the quantity of 'Chai' sold throughout the year of 2016.
+                
+
+
+          """)
+    st.write('')
+    st.write('')
+    st.write('')
+
+    st.markdown('#### Created by Chinmoy C., 2024')
+
+user_input= st.chat_input("You:")
+image_generated = False
+
+# Check and remove conflicting environment variable
+if "OPENAI_API_BASE" in os.environ:
+    del os.environ["OPENAI_API_BASE"]
 
 if __name__ == "__main__":
 
@@ -128,6 +184,69 @@ def analyze_image_agent(question, image_url):
     # Return weather info based on the place
     return analyze_image(question, image_url)
 
+@tool
+def data_visualization_agent(question, chart_type):
+    """
+    Tool to visulalize graph mentioned by graph_type argument. We'll execute the SQL using sql_agent and return the DataFrame.
+    
+    Args:
+        User question and the graph type
+    
+    Returns:
+        shows the graph.
+    """
+    # Return data frame after executing the SQL query
+    answer, df = get_dataframe(question)
+    print("Chart Type :: ", chart_type)
+    global image_generated
+    if 'pie'.lower() in chart_type.lower():
+        #specifying the figure to plot 
+        fig, x = plt.subplots(figsize=(5,5))
+        # fig.suptitle(title, fontsize=10)
+        # Create the pie chart
+        x.pie(df["TotalSales"], labels=df["Country"], autopct='%1.1f%%', textprops={'fontsize': 8})
+        x.axis('equal')  # Equal aspect ratio ensures a circular pie chart
+        # sns.lineplot(x='x', y='y', data=df, ax=x)
+
+        fig.savefig('data/chart.png')
+        image_generated = True
+    elif 'bar'.lower() in chart_type.lower():
+        #specifying the figure to plot 
+        fig, x = plt.subplots(figsize=(12,5))
+        # Remove dollar signs and convert to numeric
+        # df['TotalSales'] = df['TotalSales'].replace('[\$,]', '', regex=True).astype(float)
+        # df['TotalSales'] = df['TotalSales'].replace('[,]', '', regex=True).astype(float)
+        x.bar(df["Country"], df["TotalSales"])
+        x.set_xlabel('Country')
+        x.set_ylabel('TotalSales')
+        # Add x, y gridlines
+        x.grid(visible=True, color ='grey',
+                linestyle ='-.', linewidth = 0.5,
+                alpha = 0.2)
+
+        # Show top values 
+        fig.savefig('data/chart.png')
+        image_generated = True
+    elif 'scatter'.lower() in chart_type.lower():
+        #specifying the figure to plot 
+        fig, x = plt.subplots(figsize=(12,5))
+        x.scatter(df["Country"], df["TotalSales"])
+        x.set_xlabel('Country')
+        x.set_ylabel('TotalSales')
+        # Add x, y gridlines
+        x.grid(visible=True, color ='grey',
+                linestyle ='-.', linewidth = 0.5,
+                alpha = 0.2)
+
+        # Show top values 
+        fig.savefig('data/chart.png')
+        image_generated = True
+    else:
+        answer = answer, "\n\n", "At this point we don't support this type of chart. Please try with pie, bar or scatter chart. Stay tuned for more updates."
+
+    print("Data Visulalization Agent Answer :: ", answer)
+    return answer
+
 
 def handle_tool_error(state) -> dict:
     """
@@ -212,6 +331,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question related to weather
             - question related to financial advice
             - question related to SQL queries for the structured data
+            - question related to data visualization. Just return the answer in text format.
             - question related to general information such as computing, entertainment, genenral knowledge etc.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default.
@@ -238,6 +358,7 @@ part_1_tools = [
     generic_agent,
     sql_agent,
     analyze_image_agent,
+    data_visualization_agent,
 ]
 
 # Bind the tools to the assistant's workflow
@@ -255,31 +376,19 @@ builder.add_edge("assistant", END) # End with the assistant
 memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
 
-display(
-    Image(
-        graph.get_graph().draw_mermaid_png(
-            draw_method=MermaidDrawMethod.API,
-        )
-    )
-)
+# print(graph.get_graph().draw_mermaid())
+st_mermaid(graph.get_graph().draw_mermaid(), key="flow", height="300px")
 
 # import shutil
 import uuid
 
 # Let's create an example conversation a user might have with the assistant
-user_questions = [
-    # 'RAG: What was Microsoft\'s cloud revenue for 2024?',
-    'What kind of cloth I need to wear today? I am in Atlanta, GA.',
-    # 'Should I buy Microsoft stock?',
-    # 'Compare Google and Tesla stocks and provide a recommendation for which one to buy.',
-    # 'How I go from Atlanta to Disney World, FL?',
-    # 'Tell me something about Quantum Computing.',
-    # 'What are the total sales broken down by country?',
-    # 'What are the top 10 most popular products based on quantity sold?',
-    # 'Based on the historical stock price of Delta Airlines, please advise if I should buy the stock during holiday season when everyone travels?',
-    # 'Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rgXXXX for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png',
-    # 'Analyze the image. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/Space_Needle.png'
-]
+user_questions = []
+
+if user_input:
+    user_questions = [user_input]
+    st.markdown("$${\color{blue}Human:}$$")
+    st.markdown(user_input)
 
 
 thread_id = str(uuid.uuid4())
@@ -297,13 +406,23 @@ for question in user_questions:
         # {"messages": ("user", question)}, config, stream_mode="updates"
     )
 
+    finalresponse = ''
+
     for event in events:
-        # kind = event["event"]
         # print("Agent Event Response :: ", event, _printed, "\n")
         # print("Agent Printed Response :: ", AIMessage(event.get("messages")).json(), "\n")
         lastMessage = event.get("messages")[len(event.get("messages")) - 1]
+        finalresponse = ''
         
         if len(lastMessage.content) < 10000 :
             # print(lastMessage.content, "\n")
             event.get("messages")[-1].pretty_print()
             print("\n")
+            finalresponse = event.get("messages")[-1].content
+            
+    st.markdown("$${\color{green}AI:}$$")
+    print("Final Response :: ", finalresponse)       
+    st.markdown(finalresponse)
+    if image_generated:
+        st.image('data/chart.png')
+        image_generated = False

@@ -70,15 +70,6 @@ def execute_sql(sql):
     return execute_sql_query(sql)
 
 def generate_response_from_sql(question):
-    # rawsql = generate_sql(question)
-    # indexstart = rawsql.index('sql')
-    # indexend = rawsql.index(';')
-    # print(indexstart)
-    # print(indexend)
-    # sql = rawsql[indexstart + 3:indexend + 1]
-    # print(sql.lower())
-    
-    # return execute_sql(sql.lower())
         
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -100,16 +91,11 @@ def generate_response_from_sql(question):
         verbose=False
     )
 
-    # response = sqldb_agent.invoke(prompt.format(
-    #     question=question
-    # ))
-
-    response = sqldb_agent.run(prompt.format(
+    response = sqldb_agent.invoke(prompt.format(
         question=question
     ))
-
-    # print(response)
-    return response
+    
+    return response['output']
 
 # print(execute_sql("select * from [order details] limit 5;"))
 
