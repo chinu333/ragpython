@@ -1,6 +1,6 @@
 # Agentic Framework Implementation
 
-This repository demonstrates the implementation of the Agentic Framework, showcasing six distinct agent capabilities. The agents included are:
+This repository demonstrates the implementation of the Agentic Framework, showcasing seven distinct agent capabilities. The agents included are:
 
 - **RAG Agent**
 - **SQL Agent**
@@ -8,6 +8,7 @@ This repository demonstrates the implementation of the Agentic Framework, showca
 - **Financial Advisor Agent**
 - **Generic Agent**
 - **Multimodality Agent**
+- **Visualization Agent**
 
 ## Tech Stack
 
@@ -44,6 +45,10 @@ The following technologies are utilized in this repository:
 ### Multimodality Agent
 - **Purpose**: Handle tasks involving multiple modes of input and output (e.g., text, images).
 - **Capabilities**: Integrates different types of data to provide comprehensive responses and solutions.
+
+### Visualization Agent
+- **Purpose**: Visulalize structured data in pie, bar and scatter charts.
+- **Capabilities**: Integrates different types of data to provide comprehensive visualization.
 
 # Getting Started
 Guide users through getting your code up and running on their own system. In this section you can talk about:
