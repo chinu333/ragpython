@@ -15,6 +15,9 @@ from financial_advisor import get_historical_stock_price
 from executesql import generate_response_from_sql
 from multimodality import analyze_image
 from visualization import get_dataframe
+from mermaid import generate_mermaid
+from notify import send_email
+from traffic import get_traffic_info
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
@@ -27,6 +30,7 @@ import streamlit as st
 from streamlit_extras.add_vertical_space import add_vertical_space
 import seaborn as sns
 from streamlit_mermaid import st_mermaid
+import re
 
 st.set_page_config(layout="wide",page_title="Agentic Copilot Demo")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -60,14 +64,12 @@ with st.sidebar:
 ### Sample Questions:
   
 1. RAG: What was Microsoft\'s cloud revenue for 2024?
-2. What kind of cloth I need to wear today? I am in Atlanta, GA.
-3. Compare Google and Tesla stocks and provide a recommendation for which one to buy.
-4. Tell me something about Quantum Computing.
-5. What are the total sales broken down by country? Show in a pie chart.
-6. What are the top 10 most popular products based on quantity sold?
-7. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png
-8. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes.
-9. Please give me month-wise break up of the quantity of 'Chai' sold throughout the year of 2016.
+2. Compare Lucid and Tesla stocks and provide a recommendation for which one to buy.
+3. Tell me something about Quantum Computing.
+4. What are the total sales broken down by country? Show in a pie chart.
+5. Please give me month-wise break up of the quantity of 'Chai' sold throughout the year of 2016.
+6. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png
+7. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes.
                 
 
 
@@ -76,10 +78,12 @@ with st.sidebar:
     st.write('')
     st.write('')
 
-    st.markdown('#### Created by Chinmoy C., 2024')
+    st.markdown('#### Created by Chinmoy C., 2025')
 
 user_input= st.chat_input("You:")
 image_generated = False
+mermaid_generated = False
+generated_mermaid_code = ''
 
 # Check and remove conflicting environment variable
 if "OPENAI_API_BASE" in os.environ:
@@ -183,6 +187,60 @@ def analyze_image_agent(question, image_url):
     """
     # Return weather info based on the place
     return analyze_image(question, image_url)
+
+@tool
+def mermaid_agent(prompt):
+    """
+    Tool to generate architecture digram in mermaid format based on the user prompt.
+    
+    Args:
+        User prompt
+    
+    Returns:
+        str: Generated mermaid code of the architecture diagram.
+    """
+    # Return weather info based on the place
+    mermaid_code = generate_mermaid(prompt)
+    mermaid_code = mermaid_code.replace('`', '')
+    mermaid_code = mermaid_code.replace('mermaid', '')
+    mermaid_code = mermaid_code.replace('stateDiagram-v2;', 'stateDiagram-v2')
+    mermaid_code = mermaid_code.replace('(Active)', '')
+    mermaid_code = mermaid_code.replace('(Passive)', '')
+    # mermaid_code = re.sub(r'([a-zA-Z0-9_.-])', '', mermaid_code)
+    print("Mermaid Code :: ", mermaid_code)
+    global mermaid_generated
+    global generated_mermaid_code
+    mermaid_generated = True
+    generated_mermaid_code = mermaid_code
+    return mermaid_code
+
+@tool
+def email_agent(receiver_email, subject, email_body):
+    """
+    Tool to send email to the respective receiver.
+    
+    Args:
+        Receiver email address, email subject and the email message
+    
+    Returns:
+        str: Confirmation of the email sent.
+    """
+    # Send email to the receiver
+    return send_email(receiver_email, subject, email_body)
+
+@tool
+def traffic_agent(start_address, end_address):
+    """
+    Tool to get traffic updates between two locations.
+    
+    Args:
+        start address and end address
+    
+    Returns:
+        json: Traffic updates in json format.
+    """
+    # Get traffic updates between start address and end address
+    return get_traffic_info(start_address, end_address)
 
 @tool
 def data_visualization_agent(question, chart_type):
@@ -327,12 +385,15 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             "system",
             '''You are a helpful customer support assistant for Contoso Inc.
             You get the following type of questions from them:
-            - question related to vector store with their own data (RAG)
+            - question related to vector store with their own data (RAG) along with the source of the data.
             - question related to weather
             - question related to financial advice
             - question related to SQL queries for the structured data
             - question related to data visualization. Just return the answer in text format.
             - question related to general information such as computing, entertainment, genenral knowledge etc.
+            - question related to generating architecture diagram and/or state diagram in mermaid code from user prompt. You explain the diagram in simplae language as well.
+            - request to send email to the respective receiver with the email address, email subject and the user prompt.
+            - question related to traffic between start address and end address. You get the traffic updates in json format. Analyze the json and provide the information in text format.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default.
             ''',
@@ -359,6 +420,9 @@ part_1_tools = [
     sql_agent,
     analyze_image_agent,
     data_visualization_agent,
+    mermaid_agent,
+    email_agent,
+    traffic_agent
 ]
 
 # Bind the tools to the assistant's workflow
@@ -416,13 +480,17 @@ for question in user_questions:
         
         if len(lastMessage.content) < 10000 :
             # print(lastMessage.content, "\n")
-            event.get("messages")[-1].pretty_print()
-            print("\n")
+            # event.get("messages")[-1].pretty_print()
+            # print("\n")
             finalresponse = event.get("messages")[-1].content
             
     st.markdown("$${\color{green}AI:}$$")
     print("Final Response :: ", finalresponse)       
-    st.markdown(finalresponse)
+    st.markdown(finalresponse, unsafe_allow_html=True)
     if image_generated:
         st.image('data/chart.png')
         image_generated = False
+    if mermaid_generated:
+        st_mermaid(generated_mermaid_code, key="mermaid", height="600px")
+        mermaid_generated = False
+        generated_mermaid_code = ''

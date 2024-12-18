@@ -63,7 +63,13 @@ def ask_vector_store(question):
         template=PROMPT_TEMPLATE, input_variables=["context", "question"]
     )
 
+    sources = []
+
     def format_docs(docs):
+        for doc in docs:
+            source = doc.metadata["source"]
+            source = source.replace("./data/", "")
+            sources.append(source)
         return "\n\n".join(doc.page_content for doc in docs)
 
     qa_chain = (
@@ -82,7 +88,23 @@ def ask_vector_store(question):
     result = response
     # print("Question :: " + question)
     # print("AI Aisstant :: " + result + "\n")
-    return result
+    distinct_sources = []
+    for source in sources:
+        if source not in distinct_sources:
+            distinct_sources.append(source)
+    print("Sources :: ", distinct_sources)
+    
+    result_with_sources = result + """
+
+Sources:
+
+    """
+    for source in distinct_sources:
+        result_with_sources += f" ** {source}" + "\n"
+
+    # print("Result with sources :: ")
+    # print(result_with_sources)
+    return result_with_sources
 
 # while True:
 #     user_input = input("\nUser Question (or 'q' to quit): ")
