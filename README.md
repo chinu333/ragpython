@@ -1,6 +1,6 @@
 # Agentic Framework Implementation
 
-This repository demonstrates the implementation of the Agentic Framework, showcasing seven distinct agent capabilities. The agents included are:
+This repository demonstrates the implementation of the Agentic Framework, showcasing eleven distinct agent capabilities. The agents included are:
 
 - **RAG Agent**
 - **SQL Agent**
@@ -9,6 +9,10 @@ This repository demonstrates the implementation of the Agentic Framework, showca
 - **Generic Agent**
 - **Multimodality Agent**
 - **Visualization Agent**
+- **Mermaid Agent**
+- **Email Agent**
+- **Traffic Agent**
+- **Graph RAG Agent**
 
 ## Tech Stack
 
@@ -49,6 +53,22 @@ The following technologies are utilized in this repository:
 ### Visualization Agent
 - **Purpose**: Visulalize structured data in pie, bar and scatter charts.
 - **Capabilities**: Integrates different types of data to provide comprehensive visualization.
+
+### Mermaid Agent
+- **Purpose**: Draw architecture diagram in mermaid format (Diagram as Code) from text based user input.
+- **Capabilities**: Converts user descriptions into visual diagrams using mermaid code, making it easier to understand complex systems and workflows.
+
+### Email Agent
+- **Purpose**: Send emails to specified recipients with a given subject and message.
+- **Capabilities**: Automates the process of sending emails, ensuring timely and accurate communication with the intended recipients.
+
+### Traffic Agent
+- **Purpose**: Provide traffic updates between two specified locations.
+- **Capabilities**: Analyzes traffic data in JSON format to offer real-time traffic conditions, helping users plan their routes more efficiently.
+
+### Graph RAG Agent
+- **Purpose**: Retrieve answers from a graph database based on user questions.
+- **Capabilities**: Utilizes graph databases to provide precise and relevant answers, leveraging the relationships and connections within the data.
 
 # Getting Started
 Guide users through getting your code up and running on their own system. In this section you can talk about:
