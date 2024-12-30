@@ -1,6 +1,6 @@
 # Agentic Framework Implementation
 
-This repository demonstrates the implementation of the Agentic Framework, showcasing eleven distinct agent capabilities. The agents included are:
+This repository demonstrates the implementation of the Agentic Framework, showcasing twelve distinct agent capabilities. The agents included are:
 
 - **RAG Agent**
 - **SQL Agent**
@@ -13,6 +13,7 @@ This repository demonstrates the implementation of the Agentic Framework, showca
 - **Email Agent**
 - **Traffic Agent**
 - **Graph RAG Agent**
+- **Image Generation Agent**
 
 ## Tech Stack
 
@@ -21,8 +22,10 @@ The following technologies are utilized in this repository:
 - **Python**: The primary programming language used for developing the agents.
 - **LangChain**: A framework for building applications with language models.
 - **LangGraph**: A tool for creating and managing language model workflows.
+- **LangSmith**: LangSmith is an all-in-one developer platform to debug, collaborate, test, and monitor your LLM applications.
 - **Azure OpenAI GPT Model**: Used for generating natural language responses.
 - **Azure OpenAI Embedding Model**: Used for embedding and similarity search tasks.
+- **Azure AI Search**: Used for storing embedded data and performing advanced RAG, search and retrieval.
 
 ## Agents Description
 
@@ -69,6 +72,10 @@ The following technologies are utilized in this repository:
 ### Graph RAG Agent
 - **Purpose**: Retrieve answers from a graph database based on user questions.
 - **Capabilities**: Utilizes graph databases to provide precise and relevant answers, leveraging the relationships and connections within the data.
+
+### Image Generation Agent
+- **Purpose**: Generate images based on user questions.
+- **Capabilities**: Utilizes DALL-E-3 model to generate images based on the user prompt.
 
 # Getting Started
 Guide users through getting your code up and running on their own system. In this section you can talk about:

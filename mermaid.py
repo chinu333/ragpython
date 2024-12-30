@@ -29,9 +29,8 @@ def generate_mermaid(prompt):
         (
             "system",
             """
-            Your job is to generate a colorful architecture diagram in mermaid format based on the below
+            Your job is to generate mermaid js code based on the below
             {prompt} information only, dont use any other information. Just generate the code and nothing extra.
-            Each line in the code must be terminated by ; 
             
             Code:
             """,

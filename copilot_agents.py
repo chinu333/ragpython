@@ -18,6 +18,8 @@ from visualization import get_dataframe
 from mermaid import generate_mermaid
 from notify import send_email
 from traffic import get_traffic_info
+from graphrag import ask_graph_db
+from image_generation import generate_image
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
@@ -191,13 +193,13 @@ def analyze_image_agent(question, image_url):
 @tool
 def mermaid_agent(prompt):
     """
-    Tool to generate architecture digram in mermaid format based on the user prompt.
+    Tool to generate mermaid js code based on the user prompt.
     
     Args:
         User prompt
     
     Returns:
-        str: Generated mermaid code of the architecture diagram.
+        str: Generated mermaid code.
     """
     # Return weather info based on the place
     mermaid_code = generate_mermaid(prompt)
@@ -241,6 +243,35 @@ def traffic_agent(start_address, end_address):
     """
     # Get traffic updates between start address and end address
     return get_traffic_info(start_address, end_address)
+
+@tool
+def graphrag_agent(question):
+    """
+    Tool to retieve answer from graph db.
+    
+    Args:
+        user question.
+    
+    Returns:
+        str: Answer from the graph database.
+    """
+    # Return calculated solar savings
+    return ask_graph_db(question)
+
+@tool
+def image_generation_agent(prompt):
+    """
+    Tool to generate image from the user prompt.
+    
+    Args:
+        user prompt.
+    
+    Returns:
+        str: generated image url.
+    """
+    image_url = generate_image(prompt)
+    # Return generated image url
+    return image_url
 
 @tool
 def data_visualization_agent(question, chart_type):
@@ -391,9 +422,11 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question related to SQL queries for the structured data
             - question related to data visualization. Just return the answer in text format.
             - question related to general information such as computing, entertainment, genenral knowledge etc.
-            - question related to generating architecture diagram and/or state diagram in mermaid code from user prompt. You explain the diagram in simplae language as well.
+            - question related to generating mermaid js code from user prompt. You explain the diagram in simple language as well.
             - request to send email to the respective receiver with the email address, email subject and the user prompt.
             - question related to traffic between start address and end address. You get the traffic updates in json format. Analyze the json and provide the information in text format.
+            - question related to graph database with their own data (GRAPH RAG)
+            - question or prompt to generate image
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default.
             ''',
@@ -422,7 +455,9 @@ part_1_tools = [
     data_visualization_agent,
     mermaid_agent,
     email_agent,
-    traffic_agent
+    traffic_agent,
+    graphrag_agent,
+    image_generation_agent
 ]
 
 # Bind the tools to the assistant's workflow
