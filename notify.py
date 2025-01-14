@@ -21,7 +21,7 @@ def send_email(receiver_email, subject, email_body):
     mailItem.To = receiver_email.strip()
     mailItem.Sensitivity  = 2
     # optional (account you want to use to send the email)
-    mailItem._oleobj_.Invoke(*(64209, 0, 8, 0, olNS.Accounts.Item('cchakraborty@microsoft.com')))
+    mailItem._oleobj_.Invoke(*(64209, 0, 8, 0, olNS.Accounts.Item('xxxx@yyyy.com')))
     # mailItem.Display()
     # mailItem.Save()
     mailItem.Send()
