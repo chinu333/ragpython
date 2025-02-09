@@ -1,6 +1,6 @@
 # Agentic Framework Implementation
 
-This repository demonstrates the implementation of the Agentic Framework, showcasing twelve distinct agent capabilities. The agents included are:
+This repository demonstrates the implementation of the Agentic Framework, showcasing fourteen distinct agent capabilities. The agents included are:
 
 - **RAG Agent**
 - **SQL Agent**
@@ -14,6 +14,8 @@ This repository demonstrates the implementation of the Agentic Framework, showca
 - **Traffic Agent**
 - **Graph RAG Agent**
 - **Image Generation Agent**
+- **Developer Agent**
+- **Search Agent**
 
 ## Tech Stack
 
@@ -77,6 +79,14 @@ The following technologies are utilized in this repository:
 - **Purpose**: Generate images based on user questions.
 - **Capabilities**: Utilizes DALL-E-3 model to generate images based on the user prompt.
 
+### Developer Agent
+- **Purpose**: Generate code based on user questions.
+- **Capabilities**: Utilizes o1-mini model to generate code based on the user prompt.
+
+### Search Agent
+- **Purpose**: Search web for any queries.
+- **Capabilities**: Utilizes Bing/Google search capabilities to search on the web based on the user prompt.
+
 # Getting Started
 Guide users through getting your code up and running on their own system. In this section you can talk about:
 1.	Installation process
@@ -87,8 +97,8 @@ Guide users through getting your code up and running on their own system. In thi
 # How to run
 1. Clone the repo (e.g. ```git clone https://github.com/chinu333/ragpython.git``` or download). Then navigate to ```cd ragpython```
 2. Provide settings for Azure Open AI and Database in a file named `secrets.env` file in the root of this folder.
-4. Create a python environment with version from 3.8 and 3.10
-    - [Python 3+](https://www.python.org/downloads/)
+4. Make sure you have installed Python 3.10
+    - [Python 3.10](https://www.python.org/downloads/)
         - **Important**: Python and the pip package manager must be in the path in Windows for the setup scripts to work.
         - **Important**: Ensure you can run `python --version` from console. On Ubuntu, you might need to run `sudo apt install python-is-python3` to link `python` to `python3`. 
 5. Import the requirements.txt `pip install -r requirements.txt`

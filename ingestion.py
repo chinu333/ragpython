@@ -24,6 +24,7 @@ from langchain_community.vectorstores.azuresearch import AzureSearch
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import CharacterTextSplitter
+from langchain_community.document_loaders import PyPDFLoader
 
 
 if __name__ == "__main__":
@@ -67,7 +68,8 @@ vector_store: AzureSearch = AzureSearch(
     additional_search_client_options={"retry_total": 4},
 )
 
-loader = TextLoader("./data/ms10k_2024.txt")
+# loader = TextLoader("./data/ms10k_2024.txt")
+loader = PyPDFLoader("./data/Azure_StackHub.pdf")
 
 documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=3000, chunk_overlap=0)

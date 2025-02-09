@@ -3,6 +3,8 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from langchain_openai import AzureChatOpenAI
+from langchain_community.cache import InMemoryCache
+from langchain.globals import set_llm_cache
 
 
 
@@ -22,6 +24,9 @@ llm = AzureChatOpenAI(
     verbose=False,
     temperature=0,
 )
+
+cache = InMemoryCache()
+set_llm_cache(cache)
 
 def ask_generic_question(question):
 

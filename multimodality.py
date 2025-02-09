@@ -6,6 +6,8 @@ from langchain_openai import AzureChatOpenAI
 from langchain.schema.messages import HumanMessage
 import base64
 import httpx
+from langchain_community.cache import InMemoryCache
+from langchain.globals import set_llm_cache
 
 
 env_path = Path('.') / 'secrets.env'
@@ -25,6 +27,9 @@ llm = AzureChatOpenAI(
     temperature=0,
 )
 
+cache = InMemoryCache()
+set_llm_cache(cache)
+
 def encode_image(image_url):
     return base64.b64encode(httpx.get(image_url).content).decode("utf-8")
 
@@ -38,6 +43,8 @@ def analyze_image(question, image_url):
             {"type": "image_url", "image_url": {"url": image_url}}
         ]
     )
+
+    # print("Multimodality cache :: ", cache._cache)
     
     response = llm.invoke([message])
     return response.content

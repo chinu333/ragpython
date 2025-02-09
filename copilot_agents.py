@@ -19,6 +19,8 @@ from mermaid import generate_mermaid
 from notify import send_email
 from traffic import get_traffic_info
 from graphrag import ask_graph_db
+from developer import generate_code
+from search import search
 from image_generation import generate_image
 from dotenv import load_dotenv
 from pathlib import Path  
@@ -137,7 +139,7 @@ def weather_agent(location):
 @tool
 def financial_advisor_agent(ticker):
     """
-    Tool to provide stock recommendation based on hstorical stock prices psecified in the ticker symbol.
+    Tool to provide stock recommendation based on hstorical stock prices specified in the ticker symbol.
     
     Args:
         Ticker symbol of the company.
@@ -272,6 +274,34 @@ def image_generation_agent(prompt):
     image_url = generate_image(prompt)
     # Return generated image url
     return image_url
+
+@tool
+def developer_agent(prompt):
+    """
+    Tool to write code in different languages.
+    
+    Args:
+        User prompt.
+    
+    Returns:
+        str: Generated code.
+    """
+    # Return weather info based on the place
+    return generate_code(prompt)
+
+@tool
+def search_agent(prompt):
+    """
+    Tool to search in the web.
+    
+    Args:
+        User prompt.
+    
+    Returns:
+        str: Search results.
+    """
+    # Return weather info based on the place
+    return search(prompt)
 
 @tool
 def data_visualization_agent(question, chart_type):
@@ -427,6 +457,8 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question related to traffic between start address and end address. You get the traffic updates in json format. Analyze the json and provide the information in text format.
             - question related to graph database with their own data (GRAPH RAG)
             - question or prompt to generate image
+            - question or prompt to generate code in different languages.
+            - question or prompt to search in the web.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default.
             ''',
@@ -457,7 +489,9 @@ part_1_tools = [
     email_agent,
     traffic_agent,
     graphrag_agent,
-    image_generation_agent
+    image_generation_agent,
+    developer_agent,
+    search_agent
 ]
 
 # Bind the tools to the assistant's workflow
@@ -511,9 +545,10 @@ for question in user_questions:
         # print("Agent Event Response :: ", event, _printed, "\n")
         # print("Agent Printed Response :: ", AIMessage(event.get("messages")).json(), "\n")
         lastMessage = event.get("messages")[len(event.get("messages")) - 1]
+        print("Last Message Length :: ", len(lastMessage.content))
         finalresponse = ''
         
-        if len(lastMessage.content) < 10000 :
+        if len(lastMessage.content) < 15000 :
             # print(lastMessage.content, "\n")
             # event.get("messages")[-1].pretty_print()
             # print("\n")

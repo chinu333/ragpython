@@ -29,5 +29,7 @@ yfinance
 httpx==0.27.2
 ipython
 streamlit-mermaid
-seaborn 
+seaborn
+neo4j
+google-api-python-client
 
