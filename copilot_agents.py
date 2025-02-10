@@ -22,6 +22,7 @@ from graphrag import ask_graph_db
 from developer import generate_code
 from search import search
 from image_generation import generate_image
+from nutrition import get_nutrition_info
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
@@ -247,6 +248,20 @@ def traffic_agent(start_address, end_address):
     return get_traffic_info(start_address, end_address)
 
 @tool
+def nutrition_agent(prompt):
+    """
+    Tool to get nutrition information for different food items.
+    
+    Args:
+        user prompt for the nutrition info.
+    
+    Returns:
+        json: Nutrition info in json format.
+    """
+    # Get nutrition info based on the user prompt
+    return get_nutrition_info(prompt)
+
+@tool
 def graphrag_agent(question):
     """
     Tool to retieve answer from graph db.
@@ -459,6 +474,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question or prompt to generate image
             - question or prompt to generate code in different languages.
             - question or prompt to search in the web.
+            - question related to nutrition info of food. You get the nutrition info in json format. Analyze the json and provide the primary nutrition information in text format.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default.
             ''',
@@ -491,7 +507,8 @@ part_1_tools = [
     graphrag_agent,
     image_generation_agent,
     developer_agent,
-    search_agent
+    search_agent,
+    nutrition_agent
 ]
 
 # Bind the tools to the assistant's workflow

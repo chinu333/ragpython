@@ -1,9 +1,10 @@
 # Agentic Framework Implementation
 
-This repository demonstrates the implementation of the Agentic Framework, showcasing fourteen distinct agent capabilities. The agents included are:
+This repository demonstrates the implementation of the Agentic Framework, showcasing fifteen distinct agent capabilities. The agents included are:
 
 - **RAG Agent**
 - **SQL Agent**
+- **Nutrition Agent**
 - **Weather Agent**
 - **Financial Advisor Agent**
 - **Generic Agent**
@@ -38,6 +39,10 @@ The following technologies are utilized in this repository:
 ### SQL Agent
 - **Purpose**: Interact with SQL databases to execute queries and manage data. We are using 'northwind' db for this demo and the db is included under data folder
 - **Capabilities**: Can perform complex queries, and data analysis tasks.
+
+### Nutrition Agent
+- **Purpose**: Provides nutrition info (e.g calorie, protein, fat, carb etc) of food items
+- **Capabilities**: Makes an api call to nutrionix.com to get the nutrition info and return the info in text format.
 
 ### Weather Agent
 - **Purpose**: Provide weather updates and forecasts.
