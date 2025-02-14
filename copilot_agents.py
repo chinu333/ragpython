@@ -23,6 +23,8 @@ from developer import generate_code
 from search import search
 from image_generation import generate_image
 from nutrition import get_nutrition_info
+from phi import ask_phi
+from deepseek import ask_deepseek
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
@@ -276,6 +278,34 @@ def graphrag_agent(question):
     return ask_graph_db(question)
 
 @tool
+def deepseek_agent(question):
+    """
+     Tool to retieve answer using DEEPSEEK model.
+    
+    Args:
+        user question.
+    
+    Returns:
+        str: Answer from the DEEPSEEK model.
+    """
+    # Return user answer using DEEPSEEK model
+    return ask_deepseek(question)
+
+@tool
+def phi_agent(question):
+    """
+    Tool to retieve answer using PHI model.
+    
+    Args:
+        user question.
+    
+    Returns:
+        str: Answer from the PHI model.
+    """
+    # Return user answer using PHI model
+    return ask_phi(question)
+
+@tool
 def image_generation_agent(prompt):
     """
     Tool to generate image from the user prompt.
@@ -475,6 +505,8 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question or prompt to generate code in different languages.
             - question or prompt to search in the web.
             - question related to nutrition info of food. You get the nutrition info in json format. Analyze the json and provide the primary nutrition information in text format.
+            - question or prompt to specifically ask 'PHI' model. Please invoke 'phi_agent' for this.
+            - question or prompt to specifically ask 'DEEPSEEK' model. Please invoke 'deepseek_agent' for this.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default.
             ''',
@@ -508,7 +540,9 @@ part_1_tools = [
     image_generation_agent,
     developer_agent,
     search_agent,
-    nutrition_agent
+    nutrition_agent,
+    phi_agent,
+    deepseek_agent
 ]
 
 # Bind the tools to the assistant's workflow

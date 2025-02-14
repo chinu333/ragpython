@@ -32,4 +32,5 @@ streamlit-mermaid
 seaborn
 neo4j
 google-api-python-client
+azure-ai-inference
 
