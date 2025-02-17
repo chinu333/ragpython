@@ -12,8 +12,9 @@ def get_nutrition_info(query):
 
     headers = {
         'Content-Type': 'application/json',
-        'x-app-id': 'xx',
-        'x-app-key': 'yy'
+        'x-app-id': 'd307a2e6',
+        'x-app-key': 'ed2be41012fdebb08bba8bab0da43c23'  
+        
     }
 
     try:

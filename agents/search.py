@@ -12,8 +12,8 @@ openaikey = os.getenv("AZURE_OPENAI_API_KEY")
 openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
 aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
-os.environ["GOOGLE_API_KEY"] = "xxx"
-os.environ["GOOGLE_CSE_ID"] = "yyy"
+os.environ["GOOGLE_API_KEY"] = "AIzaSyA4BYbuQUoOwU9p8Y9-_igt40b0qx8md74"
+os.environ["GOOGLE_CSE_ID"] = "b6846bf2fe6ab4d5b"
 
 
 llm = AzureChatOpenAI(
