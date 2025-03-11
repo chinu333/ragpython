@@ -126,7 +126,7 @@ Guide users through getting your code up and running on their own system. In thi
 13. DEVELOPER: Write self contained code in HTML and JavaScript for scientific calculator. (Developer Agent)
 14. NUTRITION: Provide nutrition info of 1 cup starbucks coffee venti white chocolate mocha with whipped cream (Nutrition Agent)
 15. PHI: what is the capital of France? (PHI Agent)
-16. EEPSEEK: Write self contained code in HTML and JavaScript for scientific calculator. (DeepSeek Agent)
+16. DEEPSEEK: Write self contained code in HTML and JavaScript for scientific calculator. (DeepSeek Agent)
 17. SPACE: Show me the NASA picture of the day today? (Space Agent)
 18. SPACE: Get the mars weather information. Compare the mars weather with Atlanta, GA (Space & Weather Agent)
 
