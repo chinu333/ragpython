@@ -110,6 +110,27 @@ Guide users through getting your code up and running on their own system. In thi
 6. Run the ```python ingestion.py``` to vectorize and store `ms10k_2024.txt`file (or you can bring your own file)
 7. Run the ```streamlit run copilot_agents.py``` to run
 
+# Sameple Questions
+1. RAG: What was Microsoft\'s cloud revenue for 2024? (RAG Agent)
+2. Compare Lucid and Tesla stocks and provide a recommendation for which one to buy. (Financial Advisor Agent)
+3. Tell me something about Quantum Computing. (Generic Agent)
+4. What are the total sales broken down by country? Show in a pie chart. (SQL Agent & Visualization Agent)
+5. Please give me month-wise break up of the quantity of 'Chai' sold throughout the year of 2016. (SQL Agent)
+6. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png (Multimodality Agent)
+7. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes. (Weather Agent & Generic/Search Agent)
+8. GRAPH RAG: Give me the list of 10 movies having imdbRating more than 8? (Graph RAG Agent)
+9. Generate sequence diagram in mermaid js for Airport Management System. (Mermaid Agent)
+10. What time I need to start from 200 17th St NW, Atlanta, GA to reach Hartsfield-Jackson Atlanta Airport at 7PM? Please provide the time breakdown between delay and actual travel time. Please mention the distance in miles unit. (Traffic Agent)
+11. Generate a image of panoramic view of the Grand Canyon at sunrise, layers of rock bathed in vibrant hues of orange, red, and purple, the Colorado River snaking through the depths. (Image Generation Agent)
+12. SEARCH: What are the top restaurants near Microsoft Atlanta office? Please provide their website link as well. What is the acronym for DOGE in the context of US Government. (Search Agent)
+13. DEVELOPER: Write self contained code in HTML and JavaScript for scientific calculator. (Developer Agent)
+14. NUTRITION: Provide nutrition info of 1 cup starbucks coffee venti white chocolate mocha with whipped cream (Nutrition Agent)
+15. PHI: what is the capital of France? (PHI Agent)
+16. EEPSEEK: Write self contained code in HTML and JavaScript for scientific calculator. (DeepSeek Agent)
+17. SPACE: Show me the NASA picture of the day today? (Space Agent)
+18. SPACE: Get the mars weather information. Compare the mars weather with Atlanta, GA (Space & Weather Agent)
+
+
 ## Contributing
 
 We welcome contributions to enhance the capabilities of the Agentic Framework. Please follow the standard GitHub workflow for contributing:
