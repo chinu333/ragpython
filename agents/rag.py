@@ -14,7 +14,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 # if __name__ == "__main__":
 
-env_path = Path('.') / 'secrets.env'
+env_path = os.path.dirname(os.path.dirname( __file__ )) + os.path.sep + 'secrets.env'
 load_dotenv(dotenv_path=env_path)
 
 aisearchindexname = os.getenv("AZURE_AI_SEARCH_INDEX_NAME")
@@ -106,14 +106,4 @@ Sources:
     # print(result_with_sources)
     return result_with_sources
 
-# while True:
-#     user_input = input("\nUser Question (or 'q' to quit): ")
-
-#     if user_input == 'q':
-#         break
-
-#     try:
-#         question = str(user_input)
-#         ask_vector_store(question)
-#     except ValueError:
-#         print("Invalid input. Please enter a number or 'q'.")
+# print(ask_vector_store("What was Microsoft's cloud revenue for 2024?"))

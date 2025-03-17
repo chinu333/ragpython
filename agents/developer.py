@@ -12,8 +12,8 @@ load_dotenv(dotenv_path=env_path)
 
 openaikey = os.getenv("AZURE_OPENAI_API_KEY")
 openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-openapideploymentname = os.getenv("AZURE_OPENAI_O1_MINI_DEPLOYMENT_NAME")
-aiapiversion = os.getenv("AZURE_OPENAI_O1_MINI_API_VERSION")
+openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
+aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
 
 # llm = AzureChatOpenAI(
 #     azure_deployment=openapideploymentname,

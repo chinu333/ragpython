@@ -25,6 +25,8 @@ from agents.image_generation import generate_image
 from agents.nutrition import get_nutrition_info
 from agents.phi import ask_phi
 from agents.deepseek import ask_deepseek
+from agents.space import get_space_info
+from agents.speech import recognize_from_microphone
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
@@ -32,12 +34,13 @@ import matplotlib.pyplot as plt
 from azure.core.credentials import AzureKeyCredential
 from langchain_openai import AzureChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import END, START, StateGraph, MessagesState
 import streamlit as st
 from streamlit_extras.add_vertical_space import add_vertical_space
 import seaborn as sns
 from streamlit_mermaid import st_mermaid
-import re
+import uuid
+from mcputils.mathclient import run_math_problem
 
 st.set_page_config(layout="wide",page_title="Agentic Copilot Demo")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -92,6 +95,19 @@ image_generated = False
 mermaid_generated = False
 generated_mermaid_code = ''
 
+@tool
+def mcp_agent(prompt):
+    """
+    Call MCP Server tools to answer questions.
+    
+    Args:
+        prompt: The user prompt
+    
+    Returns:
+        Result retuned by the MCP Server
+    """
+    return run_math_problem(prompt)
+
 # Check and remove conflicting environment variable
 if "OPENAI_API_BASE" in os.environ:
     del os.environ["OPENAI_API_BASE"]
@@ -122,7 +138,7 @@ def rag_agent(question):
     Returns:
         str: Answer from the vector store.
     """
-    # Return calculated solar savings
+    # Return answer from the vector store
     return ask_vector_store(question)
 
 @tool
@@ -148,9 +164,9 @@ def financial_advisor_agent(ticker):
         Ticker symbol of the company.
     
     Returns:
-        json: Lat 5 years stock information.
+        json: Lat 2 years stock information.
     """
-    # Return weather info based on the place
+    # Return stock info for last 2 years for the ticker symbol
     return get_historical_stock_price(ticker)
 
 @tool
@@ -164,7 +180,7 @@ def generic_agent(question):
     Returns:
         str: Answer of the user question.
     """
-    # Return weather info based on the place
+    # Return answer of the generic question
     return ask_generic_question(question)
 
 @tool
@@ -178,7 +194,7 @@ def sql_agent(question):
     Returns:
         str: Answer of the user question.
     """
-    # Return weather info based on the place
+    # Return results from SQL DB
     return generate_response_from_sql(question)
 
 @tool
@@ -192,7 +208,7 @@ def analyze_image_agent(question, image_url):
     Returns:
         str: Answer of the user question.
     """
-    # Return weather info based on the place
+    # Return image analysis text
     return analyze_image(question, image_url)
 
 @tool
@@ -206,7 +222,7 @@ def mermaid_agent(prompt):
     Returns:
         str: Generated mermaid code.
     """
-    # Return weather info based on the place
+    # Return mermaid diagram
     mermaid_code = generate_mermaid(prompt)
     mermaid_code = mermaid_code.replace('`', '')
     mermaid_code = mermaid_code.replace('mermaid', '')
@@ -274,7 +290,7 @@ def graphrag_agent(question):
     Returns:
         str: Answer from the graph database.
     """
-    # Return calculated solar savings
+    # Return answer from graph db
     return ask_graph_db(question)
 
 @tool
@@ -331,7 +347,7 @@ def developer_agent(prompt):
     Returns:
         str: Generated code.
     """
-    # Return weather info based on the place
+    # Return the generated code
     return generate_code(prompt)
 
 @tool
@@ -345,8 +361,37 @@ def search_agent(prompt):
     Returns:
         str: Search results.
     """
-    # Return weather info based on the place
+    # Return search results
     return search(prompt)
+
+@tool
+def space_info_agent(prompt):
+    """
+     Tool to provide answer realated to space, NASA, moon, mars etc. 
+    
+    Args:
+        user question.
+    
+    Returns:
+        str: Answer from the space_info_agent.
+    """
+    # Return user answer using space info agent
+    return get_space_info(prompt)
+
+def speech_agent():
+    """
+     Tool to recognize speech from microphone. 
+    
+    Args:
+        no arugement.
+    
+    Returns:
+        str: The text after the conversion of the speech to text.
+    """
+    global user_input
+    user_input = recognize_from_microphone()
+   
+    return user_input
 
 @tool
 def data_visualization_agent(question, chart_type):
@@ -502,11 +547,14 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question related to traffic between start address and end address. You get the traffic updates in json format. Analyze the json and provide the information in text format.
             - question related to graph database with their own data (GRAPH RAG)
             - question or prompt to generate image
-            - question or prompt to generate code in different languages.
+            - question or prompt to generate code in different languages e.g. Python, Java, C++, HTML, Javascript etc. Explain the code as well.
             - question or prompt to search in the web.
             - question related to nutrition info of food. You get the nutrition info in json format. Analyze the json and provide the primary nutrition information in text format.
             - question or prompt to specifically ask 'PHI' model. Please invoke 'phi_agent' for this.
             - question or prompt to specifically ask 'DEEPSEEK' model. Please invoke 'deepseek_agent' for this.
+            - question or prompt related to space, NASA, moon, mars etc.
+            - question or prompt to recognize speech from the microphone. Please invoke 'speech_agent' for this.
+            - question or prompt to for MCP server. Please invoke 'mcp_agent' for this.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default.
             ''',
@@ -542,7 +590,10 @@ part_1_tools = [
     search_agent,
     nutrition_agent,
     phi_agent,
-    deepseek_agent
+    deepseek_agent,
+    space_info_agent,
+    speech_agent,
+    mcp_agent
 ]
 
 # Bind the tools to the assistant's workflow
@@ -571,7 +622,7 @@ user_questions = []
 
 if user_input:
     user_questions = [user_input]
-    st.markdown("$${\color{blue}Human:}$$")
+    st.markdown("$${\color{#1df9ef}Human:}$$")
     st.markdown(user_input)
 
 
@@ -597,15 +648,16 @@ for question in user_questions:
         # print("Agent Printed Response :: ", AIMessage(event.get("messages")).json(), "\n")
         lastMessage = event.get("messages")[len(event.get("messages")) - 1]
         print("Last Message Length :: ", len(lastMessage.content))
+        print("Last Message :: ", lastMessage.content)
         finalresponse = ''
         
-        if len(lastMessage.content) < 15000 :
+        if len(lastMessage.content) < 25000 :
             # print(lastMessage.content, "\n")
             # event.get("messages")[-1].pretty_print()
             # print("\n")
             finalresponse = event.get("messages")[-1].content
             
-    st.markdown("$${\color{green}AI:}$$")
+    st.markdown("$${\color{#19fa0a}AI:}$$")
     print("Final Response :: ", finalresponse)       
     st.markdown(finalresponse, unsafe_allow_html=True)
     if image_generated:

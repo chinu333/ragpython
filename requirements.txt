@@ -33,4 +33,10 @@ seaborn
 neo4j
 google-api-python-client
 azure-ai-inference
+nasapy
+azure-storage-file-datalake
+pypdf
+azure-cognitiveservices-speech
+mcp
+langchain-mcp-adapters
 
