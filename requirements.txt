@@ -1,4 +1,4 @@
-streamlit==1.31.1
+streamlit==1.43.0
 openai==1.52.2
 streamlit-extras==0.4.0
 python-dotenv 
@@ -39,4 +39,5 @@ pypdf
 azure-cognitiveservices-speech
 mcp
 langchain-mcp-adapters
+audio-recorder-streamlit
 

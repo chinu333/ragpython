@@ -5,6 +5,16 @@ import pandas as pd
 from retry_requests import retry
 import json
 from openmeteo_sdk.Variable import Variable
+import requests
+from pathlib import Path  
+import os
+from dotenv import load_dotenv
+
+env_path = os.path.dirname(os.path.dirname( __file__ )) + os.path.sep + 'secrets.env'
+load_dotenv(dotenv_path=env_path)
+
+azuremapssubskey = os.getenv("AZURE_MAPS_SUBSCRIPTION_KEY")
+azuremapsclientid = os.getenv("AZURE_MAPS_CLIENT_ID")
 
 
 def get_weather_info(location):
@@ -70,4 +80,33 @@ def get_weather_info(location):
 
     return "Current tempeature at ",  location, " :: ", inttemp, "Degree Fahrenheit"
 
+
+def get_weather_from_azure_maps(location):
+
+    address=location
+    geolocator = Nominatim(user_agent="Dummy")
+    location = geolocator.geocode(address)
+    lat = str(location.latitude)
+    lon = str(location.longitude)
+
+    latlon = lat + "," + lon
+
+    url = "https://atlas.microsoft.com/weather/currentConditions/json?api-version=1.0&query=" + latlon + "&subscription-key=" + azuremapssubskey
+
+    headers = {
+        'Content-Type': 'application/json',
+        'x-ms-client-id': azuremapsclientid        
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        print("Status Code:", response.status_code)
+        print("Response Body:", response.json())
+        return response.json()
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+
 # get_weather_info("Atlanta")
+# get_weather_from_azure_maps("Atlanta")

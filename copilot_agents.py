@@ -9,7 +9,7 @@ from langchain_core.runnables import RunnableLambda
 from langgraph.prebuilt import ToolNode
 from langgraph.prebuilt import tools_condition
 from agents.rag import ask_vector_store
-from agents.weather import get_weather_info
+from agents.weather import get_weather_from_azure_maps
 from agents.generic import ask_generic_question
 from agents.financial_advisor import get_historical_stock_price
 from agents.executesql import generate_response_from_sql
@@ -41,9 +41,37 @@ import seaborn as sns
 from streamlit_mermaid import st_mermaid
 import uuid
 from mcputils.mathclient import run_math_problem
+from fileuploader import upload_binary_to_azure
+from audio_recorder_streamlit import audio_recorder
+from openai import AzureOpenAI
+import base64
+import azure.cognitiveservices.speech as speechsdk
+import time
+
+if __name__ == "__main__":
+
+    env_path = Path('.') / 'secrets.env'
+    load_dotenv(dotenv_path=env_path)
+
+    aisearchindexname = os.getenv("AZURE_AI_SEARCH_INDEX_NAME")
+    aisearchkey = os.getenv("AZURE_AI_SEARCH_KEY")
+    openaikey = os.getenv("AZURE_OPENAI_API_KEY")
+    openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    aisearchendpoint= os.getenv("AZURE_AI_SEARCH_SERVICE_ENDPOINT")
+    search_creds = AzureKeyCredential(aisearchkey)
+    embeddingname = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+    openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
+    aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
+    whisperendpoint = os.getenv("AZURE_WHISPER_ENDPOINT")
+    whisperkey = os.getenv("AZURE_WHISPER_KEY")
+    whisperdeploymentname = os.getenv("AZURE_WHISPER_DEPLOYMENT_NAME")
+    azurespeechkey = os.getenv("SPEECH_KEY")
+    azurespeechregion = os.getenv("SPEECH_REGION")
+
+user_voice_input = ''
 
 st.set_page_config(layout="wide",page_title="Agentic Copilot Demo")
-st.set_option('deprecation.showPyplotGlobalUse', False)
+# st.set_option('deprecation.showPyplotGlobalUse', False)
 styl = f"""
 <style>
     .stTextInput {{
@@ -67,8 +95,37 @@ with st.sidebar:
             st.session_state['history'] = []
         if 'display_data' in st.session_state:
             st.session_state['display_data'] = {}
+    
+    st.write('')
+    
+    audio_conversion = st.toggle('Enable Voice Chat', False)
+    if audio_conversion:
+        cols = st.columns(2)
+        with cols[0]:
+            speech_input = audio_recorder(icon_size='1x', neutral_color="red")
+            
+            client = AzureOpenAI(
+                api_key=whisperkey,  
+                api_version="2024-02-01",
+                azure_endpoint = whisperendpoint
+            )
+            
+            deployment_id = whisperdeploymentname #This will correspond to the custom name you chose for your deployment when you deployed a model."
 
+            if speech_input :
+                transcript = client.audio.transcriptions.create(
+                    model=deployment_id, 
+                    file=("audio.wav", speech_input),
+                )
+                
+                audio_prompt = transcript.text
+                user_voice_input = audio_prompt
+                print("Audio Prompt :: ", audio_prompt)
 
+    st.write('')
+    st.write('')
+    
+    
     st.markdown("""
                 
 ### Sample Questions:
@@ -90,7 +147,10 @@ with st.sidebar:
 
     st.markdown('#### Created by Chinmoy C., 2025')
 
-user_input= st.chat_input("You:")
+user_input= st.chat_input("You:",
+    accept_file=True,
+    file_type=["jpg", "jpeg", "png"],
+)
 image_generated = False
 mermaid_generated = False
 generated_mermaid_code = ''
@@ -107,25 +167,6 @@ def mcp_agent(prompt):
         Result retuned by the MCP Server
     """
     return run_math_problem(prompt)
-
-# Check and remove conflicting environment variable
-if "OPENAI_API_BASE" in os.environ:
-    del os.environ["OPENAI_API_BASE"]
-
-if __name__ == "__main__":
-
-    env_path = Path('.') / 'secrets.env'
-    load_dotenv(dotenv_path=env_path)
-
-    aisearchindexname = os.getenv("AZURE_AI_SEARCH_INDEX_NAME")
-    aisearchkey = os.getenv("AZURE_AI_SEARCH_KEY")
-    openaikey = os.getenv("AZURE_OPENAI_API_KEY")
-    openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    aisearchendpoint= os.getenv("AZURE_AI_SEARCH_SERVICE_ENDPOINT")
-    search_creds = AzureKeyCredential(aisearchkey)
-    embeddingname = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
-    openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
-    aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
 
 @tool
 def rag_agent(question):
@@ -153,7 +194,7 @@ def weather_agent(location):
         str: Weather Information.
     """
     # Return weather info based on the place
-    return get_weather_info(location)
+    return get_weather_from_azure_maps(location)
 
 @tool
 def financial_advisor_agent(ticker):
@@ -537,7 +578,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             '''You are a helpful customer support assistant for Contoso Inc.
             You get the following type of questions from them:
             - question related to vector store with their own data (RAG) along with the source of the data.
-            - question related to weather
+            - question related to weather. Respond with the weather information both in celcius and fahrenheit.
             - question related to financial advice
             - question related to SQL queries for the structured data
             - question related to data visualization. Just return the answer in text format.
@@ -549,14 +590,14 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question or prompt to generate image
             - question or prompt to generate code in different languages e.g. Python, Java, C++, HTML, Javascript etc. Explain the code as well.
             - question or prompt to search in the web.
-            - question related to nutrition info of food. You get the nutrition info in json format. Analyze the json and provide the primary nutrition information in text format.
+            - question related to nutrition info of food. The food item may be attached as an image. Invoke 'analyze_image' agent and pass on the text to 'nutrition_agent' to get the nutrition info. You get the nutrition info in json format. Analyze the json and provide the primary nutrition information in text format.
             - question or prompt to specifically ask 'PHI' model. Please invoke 'phi_agent' for this.
             - question or prompt to specifically ask 'DEEPSEEK' model. Please invoke 'deepseek_agent' for this.
             - question or prompt related to space, NASA, moon, mars etc.
             - question or prompt to recognize speech from the microphone. Please invoke 'speech_agent' for this.
-            - question or prompt to for MCP server. Please invoke 'mcp_agent' for this.
+            - question or prompt to for MCP server. Please invoke 'mcp_agent' for this. Remove all excape characters from the response.
 
-            After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default.
+            After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default. Invoke 'search-agent' if you don't get any relevant information from the 'generic_agent'.
             ''',
         ),
         ("placeholder", "{messages}"),
@@ -612,19 +653,55 @@ memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
 
 # print(graph.get_graph().draw_mermaid())
-st_mermaid(graph.get_graph().draw_mermaid(), key="flow", height="300px")
+mermaid_graph = graph.get_graph().draw_mermaid()
+mermaid_graph = mermaid_graph.replace('fill-opacity:0', 'fill-opacity:1')
+mermaid_graph = mermaid_graph + """
+    linkStyle default stroke-width:2px, stroke:#ffffff
+    linkStyle 0 stroke:#13fa04
+    linkStyle 3 stroke:#04faef
+    linkStyle 4 stroke:#ef04fa
+    """
+st_mermaid(mermaid_graph, key="flow", height="300px")
 
 # import shutil
 import uuid
 
+def stream_data(finalresponse):
+    for word in finalresponse.split(" "):
+        yield word + " "
+        time.sleep(0.02)
+
 # Let's create an example conversation a user might have with the assistant
 user_questions = []
 
-if user_input:
-    user_questions = [user_input]
+if (user_input and user_input.text):
+    user_questions = [user_input.text]
     st.markdown("$${\color{#1df9ef}Human:}$$")
-    st.markdown(user_input)
+    st.markdown(user_input.text)
 
+if user_voice_input:
+    user_questions = [user_voice_input]
+    st.markdown("$${\color{#1df9ef}Human:}$$")
+    st.markdown(user_voice_input)
+
+if user_input and user_input["files"]:
+    file = user_input["files"][0]
+    filename = file.name
+    filetype = file.type
+    print("File Name", file.name)
+    print("File Type", file.type)
+    if file is not None:
+        # To read file as bytes:
+        bytes_data = file.getvalue()
+        # st.write(bytes_data)
+        binary_url = upload_binary_to_azure(
+            bytes_data, 
+            blob_name=filename,
+            content_type=filetype, 
+            container_name="miscdocs"
+        )
+        print("Binary URL :: ", binary_url)
+        user_questions = [user_input.text + ". Image URL: " + binary_url]
 
 thread_id = str(uuid.uuid4())
 
@@ -647,19 +724,46 @@ for question in user_questions:
         # print("Agent Event Response :: ", event, _printed, "\n")
         # print("Agent Printed Response :: ", AIMessage(event.get("messages")).json(), "\n")
         lastMessage = event.get("messages")[len(event.get("messages")) - 1]
-        print("Last Message Length :: ", len(lastMessage.content))
-        print("Last Message :: ", lastMessage.content)
+        # print("Last Message Length :: ", len(lastMessage.content))
+        # print("Last Message :: ", lastMessage.content)
+        # print("Number of msgs :: ", len(event.get("messages")) )
+
+        bigResponse = ''
+
+        for msg in event.get("messages"):
+            if msg.content:
+                print("Agent Response Length :: +++++++ ", len(msg.content))
+                # print("Agent Response :: ==>>>>> ", msg.content)
+                if len(msg.content) > 5000 and 'rg_agents' in msg.content:
+                    bigResponse = msg.content
+
         finalresponse = ''
         
-        if len(lastMessage.content) < 25000 :
+        if len(bigResponse) < 8000 :
             # print(lastMessage.content, "\n")
             # event.get("messages")[-1].pretty_print()
             # print("\n")
             finalresponse = event.get("messages")[-1].content
+        else:
+            finalresponse = bigResponse
             
     st.markdown("$${\color{#19fa0a}AI:}$$")
-    print("Final Response :: ", finalresponse)       
-    st.markdown(finalresponse, unsafe_allow_html=True)
+    print("Final Response :: ", finalresponse)
+    # st.markdown(finalresponse, unsafe_allow_html=True)
+    st.write_stream(stream_data(finalresponse))
+
+    if user_voice_input:
+        speech_config = speechsdk.SpeechConfig(subscription=azurespeechkey, region=azurespeechregion)
+        audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=True)
+        speech_config.speech_synthesis_voice_name = "en-US-AvaMultilingualNeural"
+        speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
+        speech_sysnthesis_result = speech_synthesizer.speak_text_async(finalresponse)
+
+        if speech_sysnthesis_result.get().reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+            print("Speech synthesis was successful")
+        else:
+            print("Speech synthesis failed: {}".format(speech_sysnthesis_result.get().cancellation_details.error_details))
+    
     if image_generated:
         st.image('data/chart.png')
         image_generated = False
