@@ -40,4 +40,9 @@ azure-cognitiveservices-speech
 mcp
 langchain-mcp-adapters
 audio-recorder-streamlit
+asyncio
+nest-asyncio
+pandas
+numpy
+playwright
 

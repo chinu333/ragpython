@@ -11,7 +11,7 @@ from langgraph.prebuilt import tools_condition
 from agents.rag import ask_vector_store
 from agents.weather import get_weather_from_azure_maps
 from agents.generic import ask_generic_question
-from agents.financial_advisor import get_historical_stock_price
+from agents.financial_advisor import get_financial_advice
 from agents.executesql import generate_response_from_sql
 from agents.multimodality import analyze_image
 from agents.visualization import get_dataframe
@@ -27,6 +27,7 @@ from agents.phi import ask_phi
 from agents.deepseek import ask_deepseek
 from agents.space import get_space_info
 from agents.speech import recognize_from_microphone
+from agents.azurecua import process_cua
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
@@ -44,7 +45,7 @@ from mcputils.mathclient import run_math_problem
 from fileuploader import upload_binary_to_azure
 from audio_recorder_streamlit import audio_recorder
 from openai import AzureOpenAI
-import base64
+import asyncio
 import azure.cognitiveservices.speech as speechsdk
 import time
 
@@ -134,9 +135,8 @@ with st.sidebar:
 2. Compare Lucid and Tesla stocks and provide a recommendation for which one to buy.
 3. Tell me something about Quantum Computing.
 4. What are the total sales broken down by country? Show in a pie chart.
-5. Please give me month-wise break up of the quantity of 'Chai' sold throughout the year of 2016.
-6. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png
-7. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes.
+5. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png
+6. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes.
                 
 
 
@@ -183,6 +183,20 @@ def rag_agent(question):
     return ask_vector_store(question)
 
 @tool
+def cua_agent(question):
+    """
+    Tool to execute Computer Use Agent (CUA) on the behalf of the user.
+    
+    Args:
+        user prompt.
+    
+    Returns:
+        str: Answer from the CUA agent.
+    """
+    # Return answer from the vector store
+    return process_cua(question)
+
+@tool
 def weather_agent(location):
     """
     Tool to retieve weather information.
@@ -197,18 +211,18 @@ def weather_agent(location):
     return get_weather_from_azure_maps(location)
 
 @tool
-def financial_advisor_agent(ticker):
+def financial_advisor_agent(prompt):
     """
-    Tool to provide stock recommendation based on hstorical stock prices specified in the ticker symbol.
+    Tool to compare and provide stock recommendation specified in the ticker symbol and/or prediction of the stock price for the future date.
     
     Args:
-        Ticker symbol of the company.
+        Prompt for the financial advisor agent.
     
     Returns:
-        json: Lat 2 years stock information.
+        str: Financial recommendation based on the prompt.
     """
     # Return stock info for last 2 years for the ticker symbol
-    return get_historical_stock_price(ticker)
+    return get_financial_advice(prompt)
 
 @tool
 def generic_agent(question):
@@ -419,6 +433,7 @@ def space_info_agent(prompt):
     # Return user answer using space info agent
     return get_space_info(prompt)
 
+@tool
 def speech_agent():
     """
      Tool to recognize speech from microphone. 
@@ -579,7 +594,8 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             You get the following type of questions from them:
             - question related to vector store with their own data (RAG) along with the source of the data.
             - question related to weather. Respond with the weather information both in celcius and fahrenheit.
-            - question related to financial advice
+            - question related to recommendation of a particular stock or comparing multiple stocks and provide buy or don't buy opinion. In this case, call 'financial_advisor_agent' and provide the recommendation and the analysis. Stock recommendation can be for any company(s). 
+            - question related to prediction of the Microsoft stock price for the future date. Do not answer if the prediction is for any other company. Respond with the range of stock prices considering the MSE (Mean Squared Error) of the model. Format the 'disclaimer' word in RED color for 'streamlit' ui text.
             - question related to SQL queries for the structured data
             - question related to data visualization. Just return the answer in text format.
             - question related to general information such as computing, entertainment, genenral knowledge etc.
@@ -596,6 +612,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question or prompt related to space, NASA, moon, mars etc.
             - question or prompt to recognize speech from the microphone. Please invoke 'speech_agent' for this.
             - question or prompt to for MCP server. Please invoke 'mcp_agent' for this. Remove all excape characters from the response.
+            - question or prompt to for CUA (Computer Use Agent). Please invoke 'cua_agent' for this. Remove all excape characters from the response.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default. Invoke 'search-agent' if you don't get any relevant information from the 'generic_agent'.
             ''',
@@ -634,7 +651,8 @@ part_1_tools = [
     deepseek_agent,
     space_info_agent,
     speech_agent,
-    mcp_agent
+    mcp_agent,
+    cua_agent,
 ]
 
 # Bind the tools to the assistant's workflow
@@ -711,63 +729,92 @@ config = {
     }
 }
 
+cua = False
+# async def process_langraph_cua(msg):
+#     # Stream the graph execution
+#     stream = cua_agent.astream(
+#         {"messages": msg},
+#         stream_mode="updates"
+#     )
+
+#     # Process the stream updates
+#     async for update in stream:
+#         if "create_vm_instance" in update:
+#             print("VM instance created")
+#             stream_url = update.get("create_vm_instance", {}).get("stream_url")
+#             # Open this URL in your browser to view the CUA stream
+#             print(f"Stream URL: {stream_url}")
+
+#     print("Done")
+
 _printed = set()
 for question in user_questions:
-    events = graph.stream(
-        {"messages": ("user", question)}, config, stream_mode="values"
-        # {"messages": ("user", question)}, config, stream_mode="updates"
-    )
+    if cua:
+        # asyncio.run(process_langraph_cua(question))
+        print("Processing CUA...")
 
-    finalresponse = ''
-
-    for event in events:
-        # print("Agent Event Response :: ", event, _printed, "\n")
-        # print("Agent Printed Response :: ", AIMessage(event.get("messages")).json(), "\n")
-        lastMessage = event.get("messages")[len(event.get("messages")) - 1]
-        # print("Last Message Length :: ", len(lastMessage.content))
-        # print("Last Message :: ", lastMessage.content)
-        # print("Number of msgs :: ", len(event.get("messages")) )
-
-        bigResponse = ''
-
-        for msg in event.get("messages"):
-            if msg.content:
-                print("Agent Response Length :: +++++++ ", len(msg.content))
-                # print("Agent Response :: ==>>>>> ", msg.content)
-                if len(msg.content) > 5000 and 'rg_agents' in msg.content:
-                    bigResponse = msg.content
+    else:
+        events = graph.stream(
+            {"messages": ("user", question)}, config, stream_mode="values"
+            # {"messages": ("user", question)}, config, stream_mode="updates"
+        )
 
         finalresponse = ''
-        
-        if len(bigResponse) < 8000 :
-            # print(lastMessage.content, "\n")
-            # event.get("messages")[-1].pretty_print()
-            # print("\n")
-            finalresponse = event.get("messages")[-1].content
-        else:
-            finalresponse = bigResponse
+
+        for event in events:
+            # print("Agent Event Response :: ", event, _printed, "\n")
+            # print("Agent Printed Response :: ", AIMessage(event.get("messages")).json(), "\n")
+            lastMessage = event.get("messages")[len(event.get("messages")) - 1]
+            # print("Last Message Length :: ", len(lastMessage.content))
+            # print("Last Message :: ", lastMessage.content)
+            # print("Number of msgs :: ", len(event.get("messages")) )
+
+            bigResponse = ''
+
+            for msg in event.get("messages"):
+                if msg.content:
+                    print("Agent Response Length :: +++++++ ", len(msg.content))
+                    # print("Agent Response :: ==>>>>> ", msg.content)
+                    if len(msg.content) > 5000 and 'rg_agents' in msg.content:
+                        bigResponse = msg.content
+
+            finalresponse = ''
             
-    st.markdown("$${\color{#19fa0a}AI:}$$")
-    print("Final Response :: ", finalresponse)
-    # st.markdown(finalresponse, unsafe_allow_html=True)
-    st.write_stream(stream_data(finalresponse))
+            if len(bigResponse) < 5000 :
+                # print(lastMessage.content, "\n")
+                # event.get("messages")[-1].pretty_print()
+                # print("\n")
+                finalresponse = event.get("messages")[-1].content
+            else:
+                finalresponse = bigResponse
+                
+        st.markdown("$${\color{#19fa0a}AI:}$$")
+        print("Final Response :: ", finalresponse)
+        # st.markdown(finalresponse, unsafe_allow_html=True)
+        st.write_stream(stream_data(finalresponse))
 
-    if user_voice_input:
-        speech_config = speechsdk.SpeechConfig(subscription=azurespeechkey, region=azurespeechregion)
-        audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=True)
-        speech_config.speech_synthesis_voice_name = "en-US-AvaMultilingualNeural"
-        speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
-        speech_sysnthesis_result = speech_synthesizer.speak_text_async(finalresponse)
+        if user_voice_input:
+            speech_config = speechsdk.SpeechConfig(subscription=azurespeechkey, region=azurespeechregion)
+            file_name = "./audio/outputaudio.wav"
+            file_config = speechsdk.audio.AudioOutputConfig(filename=file_name)
+            audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=True)
+            speech_config.speech_synthesis_voice_name = "en-US-AvaMultilingualNeural"
+            # speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
+            speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=file_config)
+            speech_sysnthesis_result = speech_synthesizer.speak_text_async(finalresponse)
 
-        if speech_sysnthesis_result.get().reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            print("Speech synthesis was successful")
-        else:
-            print("Speech synthesis failed: {}".format(speech_sysnthesis_result.get().cancellation_details.error_details))
-    
-    if image_generated:
-        st.image('data/chart.png')
-        image_generated = False
-    if mermaid_generated:
-        st_mermaid(generated_mermaid_code, key="mermaid", height="600px")
-        mermaid_generated = False
-        generated_mermaid_code = ''
+            if speech_sysnthesis_result.get().reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                print("Speech synthesis was successful")
+            else:
+                print("Speech synthesis failed: {}".format(speech_sysnthesis_result.get().cancellation_details.error_details))
+
+            # play_audio
+            st.audio("./audio/outputaudio.wav", format="audio/wav",  loop=False, autoplay=True)
+        
+        if image_generated:
+            st.image('data/chart.png')
+            image_generated = False
+        if mermaid_generated:
+            st_mermaid(generated_mermaid_code, key="mermaid", height="600px")
+            mermaid_generated = False
+            generated_mermaid_code = ''
