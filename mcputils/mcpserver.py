@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from mcp.server.fastmcp import FastMCP
 import os
 from dotenv import load_dotenv
@@ -16,24 +17,13 @@ import yfinance as yf
 env_path = os.path.dirname(os.path.dirname(__file__)) + os.path.sep + 'secrets.env'
 load_dotenv(dotenv_path=env_path)
 
-openaikey = os.getenv("AZURE_OPENAI_API_KEY")
-openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
-aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
-
 azuremapssubskey = os.getenv("AZURE_MAPS_SUBSCRIPTION_KEY")
 azuremapsclientid = os.getenv("AZURE_MAPS_CLIENT_ID")
 print("Azure Maps Subscription Key: ", azuremapssubskey)
 print("Azure Maps Client ID: ", azuremapsclientid)
 
-llm = AzureChatOpenAI(
-    azure_deployment=openapideploymentname,
-    azure_endpoint=openaiendpoint,
-    openai_api_key=openaikey,
-    api_version=aiapiversion,
-    verbose=False,
-    temperature=0,
-)
+aviationstackapikey = os.getenv("AVIATION_STACK_API_KEY")
+
 
 mcp = FastMCP("MCPServer")
 
@@ -52,13 +42,12 @@ def multiply(a: int, b: int) -> int:
 @mcp.tool()
 def get_weather_info(location):
     """Get the weather info for location."""
+    
     address=location
     geolocator = Nominatim(user_agent="Dummy")
     location = geolocator.geocode(address)
     lat = str(location.latitude)
     lon = str(location.longitude)
-
-    # return "Weather is fantastic at " + location
 
     latlon = lat + "," + lon
 
@@ -74,11 +63,32 @@ def get_weather_info(location):
         response.raise_for_status()
         print("Status Code:", response.status_code)
         print("Response Body:", response.json())
-        return response.content
+        return response.json()
 
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
-        return f"An error occurred: {e}"
+
+@mcp.tool()
+def get_flight_status(flight_number):
+    """
+    Get flight information for a flight number using AviationStack API.
+    
+    Args:
+        flight_number: Flight number (e.g., "DL123").
+
+    Returns:
+        json: Flight information.
+    """
+    print("Flight Info: ", flight_number)
+    
+    url = f"https://api.aviationstack.com/v1/flights?access_key={aviationstackapikey}&flight_iata={flight_number}"
+    
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Error fetching flight status: {response.status_code} - {response.text}")
 
 if __name__ == "__main__":
     print("Starting Math Server")

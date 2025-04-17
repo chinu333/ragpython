@@ -43,7 +43,7 @@ class MCPClient:
         # Configure server parameters
         self.server_params = StdioServerParameters(
             command="python",
-            args=["./mcputils/mathserver.py"],
+            args=["./mcputils/mcpserver.py"],
         )
         
         # Create or get event loop

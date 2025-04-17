@@ -19,18 +19,23 @@ load_dotenv(dotenv_path=env_path)
 
 aisearchindexname = os.getenv("AZURE_AI_SEARCH_INDEX_NAME")
 aisearchkey = os.getenv("AZURE_AI_SEARCH_KEY")
-openaikey = os.getenv("AZURE_OPENAI_API_KEY")
-openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+
+embeddingkey = os.getenv("AZURE_OPENAI_EMBEDDING_API_KEY")
+embeddingendpoint = os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT")
+
 aisearchendpoint= os.getenv("AZURE_AI_SEARCH_SERVICE_ENDPOINT")
 search_creds = AzureKeyCredential(aisearchkey)
 embeddingname = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+
+openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+openaikey = os.getenv("AZURE_OPENAI_API_KEY")
 openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
 aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
 
 embeddings = AzureOpenAIEmbeddings(
     model=embeddingname,
-    azure_endpoint=openaiendpoint,
-    openai_api_key=openaikey,
+    azure_endpoint=embeddingendpoint,
+    openai_api_key=embeddingkey,
 )
 
 vector_store: AzureSearch = AzureSearch(

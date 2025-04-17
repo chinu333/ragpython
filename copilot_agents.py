@@ -21,6 +21,8 @@ from agents.traffic import get_traffic_info
 from agents.graphrag import ask_graph_db
 from agents.developer import generate_code
 from agents.search import search
+from agents.cosmos import save_to_cosmos
+from mcputils.mcpclient import execute_prompt
 from agents.image_generation import generate_image
 from agents.nutrition import get_nutrition_info
 from agents.phi import ask_phi
@@ -41,13 +43,17 @@ from streamlit_extras.add_vertical_space import add_vertical_space
 import seaborn as sns
 from streamlit_mermaid import st_mermaid
 import uuid
-from mcputils.mathclient import run_math_problem
 from fileuploader import upload_binary_to_azure
 from audio_recorder_streamlit import audio_recorder
 from openai import AzureOpenAI
 import asyncio
 import azure.cognitiveservices.speech as speechsdk
 import time
+import logging
+from azure.monitor.opentelemetry import configure_azure_monitor
+from opentelemetry import trace
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.prebuilt import create_react_agent
 
 if __name__ == "__main__":
 
@@ -68,10 +74,30 @@ if __name__ == "__main__":
     whisperdeploymentname = os.getenv("AZURE_WHISPER_DEPLOYMENT_NAME")
     azurespeechkey = os.getenv("SPEECH_KEY")
     azurespeechregion = os.getenv("SPEECH_REGION")
+    appinsightconnectionstring = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")  
+
+    # configure_azure_monitor(
+    #     connection_string=appinsightconnectionstring,
+    #     logger_name="copilot.agents",
+    #     live_metrics=True,
+    #     enable_auto_collect_requests=True,
+    #     disabled_offline_storage=True,
+    # )
+
+    # agenttracer = trace.get_tracer("copilot.agents")
+    # with agenttracer.start_as_current_span("Agentic Framework") as at:
+    #     at.set_attribute("id", "copilot_agents")
+    #     at.set_attribute("tools ", "testing")
+
+# logger = logging.getLogger("copilot.agents")
+
+# initialize chat history in streamlit session state
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
 user_voice_input = ''
 
-st.set_page_config(layout="wide",page_title="Agentic Copilot Demo")
+st.set_page_config(layout="wide",page_title="Agentic Copilot Demo", page_icon="🌱")
 # st.set_option('deprecation.showPyplotGlobalUse', False)
 styl = f"""
 <style>
@@ -92,6 +118,7 @@ with st.sidebar:
     add_vertical_space(4)
     if st.button('Clear Chat'):
         st.markdown('')
+        st.session_state.chat_history = []
         if 'history' in st.session_state:
             st.session_state['history'] = []
         if 'display_data' in st.session_state:
@@ -154,19 +181,39 @@ user_input= st.chat_input("You:",
 image_generated = False
 mermaid_generated = False
 generated_mermaid_code = ''
+multimodality = False
 
 @tool
 def mcp_agent(prompt):
     """
-    Call MCP Server tools to answer questions.
+    Call MCP Server tools to answer questions. It can answer on following questions:
+     1. add
+     2. multiply
+     3. get weather information
+     4. get aviation information (e.g., flight status, timetable etc.)
     
     Args:
         prompt: The user prompt
     
     Returns:
-        Result retuned by the MCP Server
+        Result retuned by the MCP Server. Strip all the escape characters from the response.
     """
-    return run_math_problem(prompt)
+    return execute_prompt(prompt)
+    
+
+@tool
+def cosmos_agent(prompt, response):
+    """
+    Tool to save user prompt and the final response into cosmos db.
+    
+    Args:
+        prompt: The user prompt
+        response: The final response from the agent
+    
+    Returns:
+        Data saved to Cosmos DB confirmation.
+    """
+    return save_to_cosmos(prompt, response)
 
 @tool
 def rag_agent(question):
@@ -196,19 +243,19 @@ def cua_agent(question):
     # Return answer from the vector store
     return process_cua(question)
 
-@tool
-def weather_agent(location):
-    """
-    Tool to retieve weather information.
+# @tool
+# def weather_agent(location):
+#     """
+#     Tool to retieve weather information.
     
-    Args:
-        Location for which the weather info is required.
+#     Args:
+#         Location for which the weather info is required.
     
-    Returns:
-        str: Weather Information.
-    """
-    # Return weather info based on the place
-    return get_weather_from_azure_maps(location)
+#     Returns:
+#         str: Weather Information.
+#     """
+#     # Return weather info based on the place
+#     return get_weather_from_azure_maps(location)
 
 @tool
 def financial_advisor_agent(prompt):
@@ -264,6 +311,8 @@ def analyze_image_agent(question, image_url):
         str: Answer of the user question.
     """
     # Return image analysis text
+    global multimodality
+    multimodality = True
     return analyze_image(question, image_url)
 
 @tool
@@ -612,7 +661,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question or prompt related to space, NASA, moon, mars etc.
             - question or prompt to recognize speech from the microphone. Please invoke 'speech_agent' for this.
             - question or prompt to for MCP server. Please invoke 'mcp_agent' for this. Remove all excape characters from the response.
-            - question or prompt to for CUA (Computer Use Agent). Please invoke 'cua_agent' for this. Remove all excape characters from the response.
+            - question or prompt to for CUA (Computer Use Agent). Please invoke 'cua_agent' for this. Remove all escape characters from the response.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default. Invoke 'search-agent' if you don't get any relevant information from the 'generic_agent'.
             ''',
@@ -633,7 +682,7 @@ llm = AzureChatOpenAI(
 # Define the tools the assistant will use
 part_1_tools = [
     rag_agent,
-    weather_agent,
+    # weather_agent,
     financial_advisor_agent,
     generic_agent,
     sql_agent,
@@ -653,6 +702,7 @@ part_1_tools = [
     speech_agent,
     mcp_agent,
     cua_agent,
+    cosmos_agent,
 ]
 
 # Bind the tools to the assistant's workflow
@@ -667,7 +717,17 @@ builder.add_conditional_edges("assistant", tools_condition)  # Move to tools aft
 builder.add_edge("tools", "assistant")  # Return to assistant after tool execution
 builder.add_edge("assistant", END) # End with the assistant
 
-memory = MemorySaver()
+if "memory" not in st.session_state:
+    st.session_state.memory = MemorySaver()
+
+memory = st.session_state.memory
+
+# if "graph" not in st.session_state:
+#     st.session_state.graph = builder.compile(checkpointer=memory)
+
+# graph = st.session_state.graph
+
+# memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
 
 # print(graph.get_graph().draw_mermaid())
@@ -689,6 +749,11 @@ def stream_data(finalresponse):
         yield word + " "
         time.sleep(0.02)
 
+# display chat history
+for message in st.session_state.chat_history:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
 # Let's create an example conversation a user might have with the assistant
 user_questions = []
 
@@ -697,10 +762,16 @@ if (user_input and user_input.text):
     st.markdown("$${\color{#1df9ef}Human:}$$")
     st.markdown(user_input.text)
 
+    # st.chat_message("user").markdown(user_input.text)
+    st.session_state.chat_history.append({"role":"user","content": user_input.text})
+
+    # logger.info("User Input :: %s", user_input.text)
+
 if user_voice_input:
     user_questions = [user_voice_input]
     st.markdown("$${\color{#1df9ef}Human:}$$")
     st.markdown(user_voice_input)
+    # logger.info("User Voice Input :: %s", user_voice_input)
 
 if user_input and user_input["files"]:
     file = user_input["files"][0]
@@ -721,11 +792,26 @@ if user_input and user_input["files"]:
         print("Binary URL :: ", binary_url)
         user_questions = [user_input.text + ". Image URL: " + binary_url]
 
-thread_id = str(uuid.uuid4())
+def get_thread_id():
+    """
+    Function to get the thread ID.
+    
+    Returns:
+        str: The thread ID.
+    """
+    # Generate thread id if the chat history is empty
+    if "thread_id" not in st.session_state:
+        thread_id = str(uuid.uuid4())
+        st.session_state.thread_id = thread_id
+        return thread_id
+    else:
+        thread_id = st.session_state.thread_id
+        return thread_id
+
 
 config = {
     "configurable": {
-        "thread_id": thread_id,
+        "thread_id": get_thread_id()
     }
 }
 
@@ -775,7 +861,7 @@ for question in user_questions:
                 if msg.content:
                     print("Agent Response Length :: +++++++ ", len(msg.content))
                     # print("Agent Response :: ==>>>>> ", msg.content)
-                    if len(msg.content) > 5000 and 'rg_agents' in msg.content:
+                    if len(msg.content) > 5000 and multimodality:
                         bigResponse = msg.content
 
             finalresponse = ''
@@ -787,9 +873,16 @@ for question in user_questions:
                 finalresponse = event.get("messages")[-1].content
             else:
                 finalresponse = bigResponse
+                multimodality = False
                 
         st.markdown("$${\color{#19fa0a}AI:}$$")
         print("Final Response :: ", finalresponse)
+
+        # st.chat_message("user").markdown(finalresponse)
+        st.session_state.chat_history.append({"role":"assistant","content": finalresponse})
+
+
+        # logger.info("Final Response :: %s", finalresponse)
         # st.markdown(finalresponse, unsafe_allow_html=True)
         st.write_stream(stream_data(finalresponse))
 

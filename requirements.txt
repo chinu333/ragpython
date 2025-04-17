@@ -45,4 +45,5 @@ nest-asyncio
 pandas
 numpy
 playwright
+azure-monitor-opentelemetry
 
