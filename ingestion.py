@@ -25,6 +25,7 @@ from langchain_openai import AzureOpenAIEmbeddings
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_core.vectorstores import InMemoryVectorStore
 
 
 if __name__ == "__main__":
@@ -38,8 +39,11 @@ if __name__ == "__main__":
     openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     aisearchendpoint= os.getenv("AZURE_AI_SEARCH_SERVICE_ENDPOINT")
     search_creds = AzureKeyCredential(aisearchkey)
-    embeddingname = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
     aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
+
+    embeddingkey = os.getenv("AZURE_OPENAI_EMBEDDING_API_KEY")
+    embeddingendpoint = os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT")
+    embeddingname = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
 
     azureaiclient = AzureOpenAI(
         api_key=openaikey,  
@@ -53,9 +57,8 @@ print(aisearchindexname)
 # Option 2: Use AzureOpenAIEmbeddings with an Azure account
 embeddings: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings(
     azure_deployment=embeddingname,
-    openai_api_version=aiapiversion,
-    azure_endpoint=openaiendpoint,
-    api_key=openaikey,
+    azure_endpoint=embeddingendpoint,
+    api_key=embeddingkey,
 )
 
 # Specify additional properties for the Azure client such as the following https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/core/azure-core/README.md#configurations
@@ -68,8 +71,10 @@ vector_store: AzureSearch = AzureSearch(
     additional_search_client_options={"retry_total": 4},
 )
 
+in_memory_vector_store = InMemoryVectorStore(embeddings)
+
 # loader = TextLoader("./data/ms10k_2024.txt")
-loader = PyPDFLoader("./data/Azure_StackHub.pdf")
+loader = PyPDFLoader("./data/DLC_PO3.pdf", extract_images=True)
 
 documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=3000, chunk_overlap=0)

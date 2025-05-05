@@ -54,6 +54,9 @@ from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry import trace
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.prebuilt import create_react_agent
+from agents.quantum import submit_quantum_job
+from agents.videorag import ask_video_rag
+from evaluation import evaluate_agents
 
 if __name__ == "__main__":
 
@@ -182,6 +185,7 @@ image_generated = False
 mermaid_generated = False
 generated_mermaid_code = ''
 multimodality = False
+dalle_image_generated = False
 
 @tool
 def mcp_agent(prompt):
@@ -200,6 +204,18 @@ def mcp_agent(prompt):
     """
     return execute_prompt(prompt)
     
+@tool
+def quantum_agent(repetitions_count):
+    """
+    Execute a quantum process using QPU (Quantum Processing Unit).
+    
+    Args:
+        repetitions_count: Number of repetitions for the QPU process.
+
+    Returns:
+        json: QPU process result.
+    """
+    return submit_quantum_job(repetitions_count)
 
 @tool
 def cosmos_agent(prompt, response):
@@ -228,6 +244,20 @@ def rag_agent(question):
     """
     # Return answer from the vector store
     return ask_vector_store(question)
+
+@tool
+def video_rag_agent(question):
+    """
+    Tool to retieve answer from video data stored in vector db.
+    
+    Args:
+        user question.
+    
+    Returns:
+        str: Answer from the vector store.
+    """
+    # Return answer from the vector store
+    return ask_video_rag(question)
 
 @tool
 def cua_agent(question):
@@ -434,11 +464,13 @@ def image_generation_agent(prompt):
         user prompt.
     
     Returns:
-        str: generated image url.
+        str: Image generation result if the generation is successful.
     """
-    image_url = generate_image(prompt)
+    generate_image(prompt)
     # Return generated image url
-    return image_url
+    global dalle_image_generated
+    dalle_image_generated = True
+    # return image_url
 
 @tool
 def developer_agent(prompt):
@@ -642,6 +674,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             '''You are a helpful customer support assistant for Contoso Inc.
             You get the following type of questions from them:
             - question related to vector store with their own data (RAG) along with the source of the data.
+            - question related to vector store with video data (VIDEO RAG).
             - question related to weather. Respond with the weather information both in celcius and fahrenheit.
             - question related to recommendation of a particular stock or comparing multiple stocks and provide buy or don't buy opinion. In this case, call 'financial_advisor_agent' and provide the recommendation and the analysis. Stock recommendation can be for any company(s). 
             - question related to prediction of the Microsoft stock price for the future date. Do not answer if the prediction is for any other company. Respond with the range of stock prices considering the MSE (Mean Squared Error) of the model. Format the 'disclaimer' word in RED color for 'streamlit' ui text.
@@ -662,6 +695,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question or prompt to recognize speech from the microphone. Please invoke 'speech_agent' for this.
             - question or prompt to for MCP server. Please invoke 'mcp_agent' for this. Remove all excape characters from the response.
             - question or prompt to for CUA (Computer Use Agent). Please invoke 'cua_agent' for this. Remove all escape characters from the response.
+            - question or prompt related to execute a process on quantum processor.
 
             After you are able to discern all the information, call the relevant tool. Depending on the question, you might need to call multiple agents to answer the question appropriately. Call the generic agent by default. Invoke 'search-agent' if you don't get any relevant information from the 'generic_agent'.
             ''',
@@ -703,6 +737,8 @@ part_1_tools = [
     mcp_agent,
     cua_agent,
     cosmos_agent,
+    quantum_agent,
+    video_rag_agent,
 ]
 
 # Bind the tools to the assistant's workflow
@@ -729,6 +765,7 @@ memory = st.session_state.memory
 
 # memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
+# evaluate_agents(graph)
 
 # print(graph.get_graph().draw_mermaid())
 mermaid_graph = graph.get_graph().draw_mermaid()
@@ -907,6 +944,9 @@ for question in user_questions:
         if image_generated:
             st.image('data/chart.png')
             image_generated = False
+        if  dalle_image_generated:
+            st.image('data/generated_image_1.png')
+            dalle_image_generated = False
         if mermaid_generated:
             st_mermaid(generated_mermaid_code, key="mermaid", height="600px")
             mermaid_generated = False

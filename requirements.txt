@@ -46,4 +46,7 @@ pandas
 numpy
 playwright
 azure-monitor-opentelemetry
+azure-cosmos
+qsharp
+rapidocr-onnxruntime
 
