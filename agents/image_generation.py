@@ -83,6 +83,6 @@ def generate_image(prompt):
     # print("Generation Response: ", generation_response)
 
     save_all_images_from_response(generation_response, "generated_image")
-    return "Image Generated Successfully. Check the data folder for the image."
+    return "Image Generated Successfully."
 
 # print(generate_image("Generate an image of an oil painting by Vincent Van Gogh depicting a garden with cherry blossoms by the river."))

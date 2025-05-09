@@ -167,6 +167,7 @@ with st.sidebar:
 4. What are the total sales broken down by country? Show in a pie chart.
 5. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png
 6. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes.
+7. Execute a quantum job with 80 repetitions.
                 
 
 

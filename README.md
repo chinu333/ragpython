@@ -102,13 +102,13 @@ Guide users through getting your code up and running on their own system. In thi
 # How to run
 1. Clone the repo (e.g. ```git clone https://github.com/chinu333/ragpython.git``` or download). Then navigate to ```cd ragpython```
 2. Provide settings for Azure Open AI and Database in a file named `secrets.env` file in the root of this folder.
-4. Make sure you have installed Python 3.10
+3. Make sure you have installed Python 3.10
     - [Python 3.10](https://www.python.org/downloads/)
         - **Important**: Python and the pip package manager must be in the path in Windows for the setup scripts to work.
         - **Important**: Ensure you can run `python --version` from console. On Ubuntu, you might need to run `sudo apt install python-is-python3` to link `python` to `python3`. 
-5. Import the requirements.txt `pip install -r requirements.txt`
-6. Run the ```python ingestion.py``` to vectorize and store `ms10k_2024.txt`file (or you can bring your own file)
-7. Run the ```streamlit run copilot_agents.py``` to run
+4. Import the requirements.txt `pip install -r requirements.txt`
+5. Run the ```python ingestion.py``` to vectorize and store `ms10k_2024.txt`file (or you can bring your own file)
+6. Run the ```streamlit run copilot_agents.py``` to run
 
 # Sameple Questions
 1. RAG: What was Microsoft\'s cloud revenue for 2024? (RAG Agent)

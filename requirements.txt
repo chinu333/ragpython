@@ -28,7 +28,7 @@ retry-requests
 yfinance
 httpx==0.27.2
 ipython
-streamlit-mermaid
+streamlit-mermaid==0.2.0
 seaborn
 neo4j
 google-api-python-client
@@ -49,4 +49,8 @@ azure-monitor-opentelemetry
 azure-cosmos
 qsharp
 rapidocr-onnxruntime
+azure-quantum
+azure-quantum[cirq]
+jwcrypto
+typing
 

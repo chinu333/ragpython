@@ -1,13 +1,21 @@
 from azure.quantum import Workspace
 from azure.quantum.cirq import AzureQuantumService
 import cirq
+import os
+from dotenv import load_dotenv
 
 
-workspace = Workspace ( 
-  resource_id = "/subscriptions/dfbce8c6-7e40-4c00-b0c2-7542f1dd2814/resourceGroups/atlmtcquamtum/providers/Microsoft.Quantum/Workspaces/atlquantum", # Add your resource_id 
-  location = "eastus"  # Add your workspace location (for example, "westus") 
-)
+env_path = os.path.dirname(os.path.dirname( __file__ )) + os.path.sep + 'secrets.env'
+load_dotenv(dotenv_path=env_path)
 
+azure_quantum_conn_str = os.getenv("AZURE_QUANTUM_CONNECTION_STRING")
+
+# workspace = Workspace ( 
+#   resource_id = "/subscriptions/dfbce8c6-7e40-4c00-b0c2-7542f1dd2814/resourceGroups/atlmtcquamtum/providers/Microsoft.Quantum/Workspaces/atlquantum", # Add your resource_id 
+#   location = "eastus"  # Add your workspace location (for example, "westus") 
+# )
+
+workspace = Workspace.from_connection_string(azure_quantum_conn_str)
 service = AzureQuantumService(workspace)
 
 print("This workspace's targets:")
