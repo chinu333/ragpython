@@ -196,6 +196,7 @@ def mcp_agent(prompt):
      2. multiply
      3. get weather information
      4. get aviation information (e.g., flight status, timetable etc.)
+     5. convert currency (e.g., USD to EUR)
     
     Args:
         prompt: The user prompt

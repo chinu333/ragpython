@@ -1,6 +1,6 @@
 # Agentic Framework Implementation
 
-This repository demonstrates the implementation of the Agentic Framework, showcasing fifteen distinct agent capabilities. The agents included are:
+This repository showcases the implementation of the Agentic Framework, featuring over fifteen unique agent capabilities. Several agents are integrated via the MCP (Model Context Protocol) Server, and the framework also leverages the A2A Server to enable Agent-to-Agent communication. The agents included are:
 
 - **RAG Agent**
 - **SQL Agent**
@@ -29,6 +29,7 @@ The following technologies are utilized in this repository:
 - **Azure OpenAI GPT Model**: Used for generating natural language responses.
 - **Azure OpenAI Embedding Model**: Used for embedding and similarity search tasks.
 - **Azure AI Search**: Used for storing embedded data and performing advanced RAG, search and retrieval.
+- **Streamlit**: For the UI.
 
 ## Agents Description
 
@@ -109,6 +110,14 @@ Guide users through getting your code up and running on their own system. In thi
 4. Import the requirements.txt `pip install -r requirements.txt`
 5. Run the ```python ingestion.py``` to vectorize and store `ms10k_2024.txt`file (or you can bring your own file)
 6. Run the ```streamlit run copilot_agents.py``` to run
+
+# A2A Server
+The A2AServer included in this repository is a LangGraph implementation adapted from the GitHub repository shared by Google. You can take a look at the original repository [here](https://github.com/google/A2A/). The A2AServer in this repo is a simplified version of the original.
+
+## How to run A2AServer
+1. Navigate to ```cd ragpython```
+2. Run the ```python a2aserver --host 127.0.0.1 --port 3432``` to run (Change the host ip and port)
+3. Configure `A2A_SERVER_URL` environment varibale in `secrets.env`. A2AClient will pick up this URL to connect to the A2AServer
 
 # Sameple Questions
 1. RAG: What was Microsoft\'s cloud revenue for 2024? (RAG Agent)

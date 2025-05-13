@@ -140,5 +140,10 @@ def execute_prompt(prompt):
 if __name__ == "__main__":
     result = execute_prompt("what's (3 + 5) x 12?")
     print(f"Result: {result}")
-    result = execute_prompt("How is the weather in Kolkata today?")
-    print(f"Weather Result: {result}")
+    # result = execute_prompt("How is the weather in Kolkata today?")
+    # print(f"Weather Result: {result}")
+    # result = execute_prompt("Execute a quantum job with 80 repetitions.")
+    # print(f"Quantum Process Result: {result}")
+
+    result = execute_prompt("Could you please update me with the flight status of DL235?")
+    print(f"Flight Status Result: {result}")

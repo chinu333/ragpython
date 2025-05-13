@@ -6,6 +6,10 @@ from langchain_openai import AzureChatOpenAI
 from geopy.geocoders import Nominatim
 import requests
 import yfinance as yf
+from azure.quantum import Workspace
+from azure.quantum.cirq import AzureQuantumService
+import cirq
+from a2aclient.a2aclient import perform_action
 
 # mcp = FastMCP(
 #     name="Math",
@@ -23,6 +27,7 @@ print("Azure Maps Subscription Key: ", azuremapssubskey)
 print("Azure Maps Client ID: ", azuremapsclientid)
 
 aviationstackapikey = os.getenv("AVIATION_STACK_API_KEY")
+a2aserverurl = os.getenv("A2A_SERVER_URL")
 
 
 mcp = FastMCP("MCPServer")
@@ -89,6 +94,20 @@ def get_flight_status(flight_number):
         return response.json()
     else:
         raise Exception(f"Error fetching flight status: {response.status_code} - {response.text}")
+    
+@mcp.tool()
+async def convert_currency(prompt):
+    """
+    Convert currency from USD to EUR.
+    
+    Args:
+        promtp: Prompt for the currency conversion.
+
+    Returns:
+        str: Information after the conversion.
+    """
+     
+    return await perform_action(userPrompt=prompt, agent=a2aserverurl)
 
 if __name__ == "__main__":
     print("Starting Math Server")
