@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 
 memory = MemorySaver()
-env_path = Path('./a2aserver') / '.env'
+env_path = Path('./a2aserver') / 'a2aserver.env'
 load_dotenv(dotenv_path=env_path)
 
 openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
