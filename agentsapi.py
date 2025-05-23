@@ -1,8 +1,10 @@
 from langchain_core.tools import tool
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
-from typing import Annotated
+from typing import Annotated, List, Dict, Any, Optional
 from typing_extensions import TypedDict
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from langgraph.graph.message import AnyMessage, add_messages
 from langchain_core.messages import ToolMessage
 from langchain_core.runnables import RunnableLambda
@@ -38,149 +40,46 @@ from azure.core.credentials import AzureKeyCredential
 from langchain_openai import AzureChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph, MessagesState
-import streamlit as st
-from streamlit_extras.add_vertical_space import add_vertical_space
-import seaborn as sns
-from streamlit_mermaid import st_mermaid
 import uuid
-from fileuploader import upload_binary_to_azure
-from audio_recorder_streamlit import audio_recorder
 from openai import AzureOpenAI
-import asyncio
-import azure.cognitiveservices.speech as speechsdk
-import time
-import logging
-from azure.monitor.opentelemetry import configure_azure_monitor
-from opentelemetry import trace
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.prebuilt import create_react_agent
+import uvicorn
+from agents.quantum import submit_quantum_job
 from agents.videorag import ask_video_rag
 from evaluation import evaluate_agents
 
-if __name__ == "__main__":
+# Create FastAPI app
+app = FastAPI(title="AI Copilot With Agents API", 
+              description="API for interacting with an agentic AI assistant",
+              version="1.0.0")
 
-    env_path = Path('.') / 'secrets.env'
-    load_dotenv(dotenv_path=env_path)
+# Define request and response models
+class ChatRequest(BaseModel):
+    query: str
 
-    aisearchindexname = os.getenv("AZURE_AI_SEARCH_INDEX_NAME")
-    aisearchkey = os.getenv("AZURE_AI_SEARCH_KEY")
-    openaikey = os.getenv("AZURE_OPENAI_API_KEY")
-    openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    aisearchendpoint= os.getenv("AZURE_AI_SEARCH_SERVICE_ENDPOINT")
-    search_creds = AzureKeyCredential(aisearchkey)
-    embeddingname = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
-    openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
-    aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
-    whisperendpoint = os.getenv("AZURE_WHISPER_ENDPOINT")
-    whisperkey = os.getenv("AZURE_WHISPER_KEY")
-    whisperdeploymentname = os.getenv("AZURE_WHISPER_DEPLOYMENT_NAME")
-    azurespeechkey = os.getenv("SPEECH_KEY")
-    azurespeechregion = os.getenv("SPEECH_REGION")
-    appinsightconnectionstring = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")  
+class ChatResponse(BaseModel):
+    response: str
 
-    # configure_azure_monitor(
-    #     connection_string=appinsightconnectionstring,
-    #     logger_name="copilot.agents",
-    #     live_metrics=True,
-    #     enable_auto_collect_requests=True,
-    #     disabled_offline_storage=True,
-    # )
+# Load environment variables
+env_path = Path('.') / 'secrets.env'
+load_dotenv(dotenv_path=env_path)
 
-    # agenttracer = trace.get_tracer("copilot.agents")
-    # with agenttracer.start_as_current_span("Agentic Framework") as at:
-    #     at.set_attribute("id", "copilot_agents")
-    #     at.set_attribute("tools ", "testing")
+aisearchindexname = os.getenv("AZURE_AI_SEARCH_INDEX_NAME")
+aisearchkey = os.getenv("AZURE_AI_SEARCH_KEY")
+openaikey = os.getenv("AZURE_OPENAI_API_KEY")
+openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+aisearchendpoint= os.getenv("AZURE_AI_SEARCH_SERVICE_ENDPOINT")
+search_creds = AzureKeyCredential(aisearchkey)
+embeddingname = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
+aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
+whisperendpoint = os.getenv("AZURE_WHISPER_ENDPOINT")
+whisperkey = os.getenv("AZURE_WHISPER_KEY")
+whisperdeploymentname = os.getenv("AZURE_WHISPER_DEPLOYMENT_NAME")
+azurespeechkey = os.getenv("SPEECH_KEY")
+azurespeechregion = os.getenv("SPEECH_REGION")
+appinsightconnectionstring = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")  
 
-# logger = logging.getLogger("copilot.agents")
-
-# initialize chat history in streamlit session state
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-user_voice_input = ''
-
-st.set_page_config(layout="wide",page_title="Agentic Copilot Demo", page_icon="🌱")
-# st.set_option('deprecation.showPyplotGlobalUse', False)
-styl = f"""
-<style>
-    .stTextInput {{
-      position: fixed;
-      bottom: 3rem;
-    }}
-</style>
-"""
-st.markdown(styl, unsafe_allow_html=True)
-# Sidebar contents
-with st.sidebar:
-
-    st.title('AI Copilot With Agents')
-    st.markdown('''
-    ''')
-
-    add_vertical_space(4)
-    if st.button('Clear Chat'):
-        st.markdown('')
-        st.session_state.chat_history = []
-        if 'history' in st.session_state:
-            st.session_state['history'] = []
-        if 'display_data' in st.session_state:
-            st.session_state['display_data'] = {}
-    
-    st.write('')
-    
-    audio_conversion = st.toggle('Enable Voice Chat', False)
-    if audio_conversion:
-        cols = st.columns(2)
-        with cols[0]:
-            speech_input = audio_recorder(icon_size='1x', neutral_color="red")
-            
-            client = AzureOpenAI(
-                api_key=whisperkey,  
-                api_version="2024-02-01",
-                azure_endpoint = whisperendpoint
-            )
-            
-            deployment_id = whisperdeploymentname #This will correspond to the custom name you chose for your deployment when you deployed a model."
-
-            if speech_input :
-                transcript = client.audio.transcriptions.create(
-                    model=deployment_id, 
-                    file=("audio.wav", speech_input),
-                )
-                
-                audio_prompt = transcript.text
-                user_voice_input = audio_prompt
-                print("Audio Prompt :: ", audio_prompt)
-
-    st.write('')
-    st.write('')
-    
-    
-    st.markdown("""
-                
-### Sample Questions:
-  
-1. RAG: What was Microsoft\'s cloud revenue for 2024?
-2. Compare Lucid and Tesla stocks and provide a recommendation for which one to buy.
-3. Tell me something about Quantum Computing.
-4. What are the total sales broken down by country? Show in a pie chart.
-5. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png
-6. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes.
-7. Execute a quantum job with 80 repetitions.
-                
-
-
-          """)
-    st.write('')
-    st.write('')
-    st.write('')
-
-    st.markdown('#### Created by Chinmoy C., 2025')
-
-user_input= st.chat_input("You:",
-    accept_file=True,
-    file_type=["jpg", "jpeg", "png"],
-)
+# Initialize state variables
 image_generated = False
 mermaid_generated = False
 generated_mermaid_code = ''
@@ -196,7 +95,6 @@ def mcp_agent(prompt):
      3. get weather information
      4. get aviation information (e.g., flight status, timetable etc.)
      5. convert currency (e.g., USD to EUR)
-     6. Execute a quantum process using QPU (Quantum Processing Unit)
     
     Args:
         prompt: The user prompt
@@ -206,18 +104,18 @@ def mcp_agent(prompt):
     """
     return execute_prompt(prompt)
     
-# @tool
-# def quantum_agent(repetitions_count):
-#     """
-#     Execute a quantum process using QPU (Quantum Processing Unit).
+@tool
+def quantum_agent(repetitions_count):
+    """
+    Execute a quantum process using QPU (Quantum Processing Unit).
     
-#     Args:
-#         repetitions_count: Number of repetitions for the QPU process.
+    Args:
+        repetitions_count: Number of repetitions for the QPU process.
 
-#     Returns:
-#         json: QPU process result.
-#     """
-#     return submit_quantum_job(repetitions_count)
+    Returns:
+        json: QPU process result.
+    """
+    return submit_quantum_job(repetitions_count)
 
 @tool
 def cosmos_agent(prompt, response):
@@ -718,7 +616,6 @@ llm = AzureChatOpenAI(
 # Define the tools the assistant will use
 part_1_tools = [
     rag_agent,
-    # weather_agent,
     financial_advisor_agent,
     generic_agent,
     sql_agent,
@@ -739,12 +636,14 @@ part_1_tools = [
     mcp_agent,
     cua_agent,
     cosmos_agent,
+    quantum_agent,
     video_rag_agent,
 ]
 
 # Bind the tools to the assistant's workflow
 part_1_assistant_runnable = primary_assistant_prompt | llm.bind_tools(part_1_tools)
 
+# Build the graph
 builder = StateGraph(State)
 builder.add_node("assistant", Assistant(part_1_assistant_runnable))
 builder.add_node("tools", create_tool_node_with_fallback(part_1_tools))
@@ -754,201 +653,58 @@ builder.add_conditional_edges("assistant", tools_condition)  # Move to tools aft
 builder.add_edge("tools", "assistant")  # Return to assistant after tool execution
 builder.add_edge("assistant", END) # End with the assistant
 
-if "memory" not in st.session_state:
-    st.session_state.memory = MemorySaver()
-
-memory = st.session_state.memory
-
-# if "graph" not in st.session_state:
-#     st.session_state.graph = builder.compile(checkpointer=memory)
-
-# graph = st.session_state.graph
-
-# memory = MemorySaver()
+# Compile the graph
+memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
-# evaluate_agents(graph)
 
-# print(graph.get_graph().draw_mermaid())
-mermaid_graph = graph.get_graph().draw_mermaid()
-mermaid_graph = mermaid_graph.replace('fill-opacity:0', 'fill-opacity:1')
-mermaid_graph = mermaid_graph + """
-    linkStyle default stroke-width:2px, stroke:#ffffff
-    linkStyle 0 stroke:#13fa04
-    linkStyle 3 stroke:#04faef
-    linkStyle 4 stroke:#ef04fa
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
     """
-st_mermaid(mermaid_graph, key="flow", height="300px")
-
-# import shutil
-import uuid
-
-def stream_data(finalresponse):
-    for word in finalresponse.split(" "):
-        yield word + " "
-        time.sleep(0.02)
-
-# display chat history
-for message in st.session_state.chat_history:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# Let's create an example conversation a user might have with the assistant
-user_questions = []
-
-if (user_input and user_input.text):
-    user_questions = [user_input.text]
-    st.markdown("$${\color{#1df9ef}Human:}$$")
-    st.markdown(user_input.text)
-
-    # st.chat_message("user").markdown(user_input.text)
-    st.session_state.chat_history.append({"role":"user","content": user_input.text})
-
-    # logger.info("User Input :: %s", user_input.text)
-
-if user_voice_input:
-    user_questions = [user_voice_input]
-    st.markdown("$${\color{#1df9ef}Human:}$$")
-    st.markdown(user_voice_input)
-    # logger.info("User Voice Input :: %s", user_voice_input)
-
-if user_input and user_input["files"]:
-    file = user_input["files"][0]
-    filename = file.name
-    filetype = file.type
-    print("File Name", file.name)
-    print("File Type", file.type)
-    if file is not None:
-        # To read file as bytes:
-        bytes_data = file.getvalue()
-        # st.write(bytes_data)
-        binary_url = upload_binary_to_azure(
-            bytes_data, 
-            blob_name=filename,
-            content_type=filetype, 
-            container_name="miscdocs"
-        )
-        print("Binary URL :: ", binary_url)
-        user_questions = [user_input.text + ". Image URL: " + binary_url]
-
-def get_thread_id():
-    """
-    Function to get the thread ID.
+    Process a chat request and return the AI's response
     
+    Args:
+        request: The chat request containing the query
+        
     Returns:
-        str: The thread ID.
+        The AI's response to the query
     """
-    # Generate thread id if the chat history is empty
-    if "thread_id" not in st.session_state:
-        thread_id = str(uuid.uuid4())
-        st.session_state.thread_id = thread_id
-        return thread_id
-    else:
-        thread_id = st.session_state.thread_id
-        return thread_id
-
-
-config = {
-    "configurable": {
-        "thread_id": get_thread_id()
-    }
-}
-
-cua = False
-# async def process_langraph_cua(msg):
-#     # Stream the graph execution
-#     stream = cua_agent.astream(
-#         {"messages": msg},
-#         stream_mode="updates"
-#     )
-
-#     # Process the stream updates
-#     async for update in stream:
-#         if "create_vm_instance" in update:
-#             print("VM instance created")
-#             stream_url = update.get("create_vm_instance", {}).get("stream_url")
-#             # Open this URL in your browser to view the CUA stream
-#             print(f"Stream URL: {stream_url}")
-
-#     print("Done")
-
-_printed = set()
-for question in user_questions:
-    if cua:
-        # asyncio.run(process_langraph_cua(question))
-        print("Processing CUA...")
-
-    else:
+    try:
+        # Process the user query
+        config = {
+            "configurable": {
+                "thread_id": str(uuid.uuid4())
+            }
+        }
+        
+        # Get response from the graph
         events = graph.stream(
-            {"messages": ("user", question)}, config, stream_mode="values"
-            # {"messages": ("user", question)}, config, stream_mode="updates"
+            {"messages": ("user", request.query)}, 
+            config, 
+            stream_mode="values"
         )
-
-        finalresponse = ''
-
+        
+        finalresponse = ""
+        global multimodality
+        
+        # Process events from graph execution
         for event in events:
-            # print("Agent Event Response :: ", event, _printed, "\n")
-            # print("Agent Printed Response :: ", AIMessage(event.get("messages")).json(), "\n")
             lastMessage = event.get("messages")[len(event.get("messages")) - 1]
-            # print("Last Message Length :: ", len(lastMessage.content))
-            # print("Last Message :: ", lastMessage.content)
-            # print("Number of msgs :: ", len(event.get("messages")) )
-
-            bigResponse = ''
-
-            for msg in event.get("messages"):
-                if msg.content:
-                    print("Agent Response Length :: +++++++ ", len(msg.content))
-                    # print("Agent Response :: ==>>>>> ", msg.content)
-                    if len(msg.content) > 5000 and multimodality:
-                        bigResponse = msg.content
-
-            finalresponse = ''
             
-            if len(bigResponse) < 5000 :
-                # print(lastMessage.content, "\n")
-                # event.get("messages")[-1].pretty_print()
-                # print("\n")
+            # Handle multimodality responses
+            bigResponse = ''
+            for msg in event.get("messages"):
+                if msg.content and len(msg.content) > 5000 and multimodality:
+                    bigResponse = msg.content
+            
+            # Set final response
+            if len(bigResponse) < 5000:
                 finalresponse = event.get("messages")[-1].content
             else:
                 finalresponse = bigResponse
                 multimodality = False
-                
-        st.markdown("$${\color{#19fa0a}AI:}$$")
-        print("Final Response :: ", finalresponse)
-
-        # st.chat_message("user").markdown(finalresponse)
-        st.session_state.chat_history.append({"role":"assistant","content": finalresponse})
-
-
-        # logger.info("Final Response :: %s", finalresponse)
-        # st.markdown(finalresponse, unsafe_allow_html=True)
-        st.write_stream(stream_data(finalresponse))
-
-        if user_voice_input:
-            speech_config = speechsdk.SpeechConfig(subscription=azurespeechkey, region=azurespeechregion)
-            file_name = "./audio/outputaudio.wav"
-            file_config = speechsdk.audio.AudioOutputConfig(filename=file_name)
-            audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=True)
-            speech_config.speech_synthesis_voice_name = "en-US-AvaMultilingualNeural"
-            # speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
-            speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=file_config)
-            speech_sysnthesis_result = speech_synthesizer.speak_text_async(finalresponse)
-
-            if speech_sysnthesis_result.get().reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-                print("Speech synthesis was successful")
-            else:
-                print("Speech synthesis failed: {}".format(speech_sysnthesis_result.get().cancellation_details.error_details))
-
-            # play_audio
-            st.audio("./audio/outputaudio.wav", format="audio/wav",  loop=False, autoplay=True)
         
-        if image_generated:
-            st.image('data/chart.png')
-            image_generated = False
-        if  dalle_image_generated:
-            st.image('data/generated_image_1.png')
-            dalle_image_generated = False
-        if mermaid_generated:
-            st_mermaid(generated_mermaid_code, key="mermaid", height="600px")
-            mermaid_generated = False
-            generated_mermaid_code = ''
+        # Return response
+        return ChatResponse(response=finalresponse)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")

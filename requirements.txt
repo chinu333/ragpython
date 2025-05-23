@@ -54,3 +54,4 @@ azure-quantum[cirq]
 jwcrypto
 typing
 asyncclick
+fastapi[standard]

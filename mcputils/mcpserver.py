@@ -1,11 +1,8 @@
-from datetime import datetime, timedelta
 from mcp.server.fastmcp import FastMCP
 import os
 from dotenv import load_dotenv
-from langchain_openai import AzureChatOpenAI
 from geopy.geocoders import Nominatim
 import requests
-import yfinance as yf
 from azure.quantum import Workspace
 from azure.quantum.cirq import AzureQuantumService
 import cirq
@@ -23,11 +20,13 @@ load_dotenv(dotenv_path=env_path)
 
 azuremapssubskey = os.getenv("AZURE_MAPS_SUBSCRIPTION_KEY")
 azuremapsclientid = os.getenv("AZURE_MAPS_CLIENT_ID")
-print("Azure Maps Subscription Key: ", azuremapssubskey)
-print("Azure Maps Client ID: ", azuremapsclientid)
+# print("Azure Maps Subscription Key: ", azuremapssubskey)
+# print("Azure Maps Client ID: ", azuremapsclientid)
 
 aviationstackapikey = os.getenv("AVIATION_STACK_API_KEY")
 a2aserverurl = os.getenv("A2A_SERVER_URL")
+azure_quantum_conn_str = os.getenv("AZURE_QUANTUM_CONNECTION_STRING")
+# print("Azure Quantum Connection String: ", azure_quantum_conn_str)
 
 
 mcp = FastMCP("MCPServer")
@@ -108,6 +107,50 @@ async def convert_currency(prompt):
     """
      
     return await perform_action(userPrompt=prompt, agent=a2aserverurl)
+
+@mcp.tool()
+async def execute_quantum_job(repetitions_count):
+    """
+    Execute a quantum process using QPU (Quantum Processing Unit).
+    
+    Args:
+        repetitions_count: Number of repetitions for the QPU process.
+
+    Returns:
+        json: QPU process result.
+    """
+     
+    workspace = Workspace.from_connection_string(azure_quantum_conn_str)
+    service = AzureQuantumService(workspace)
+
+    q0 = cirq.LineQubit(0)
+    circuit = cirq.Circuit(
+        cirq.H(q0),               # Apply an H-gate to q0
+        cirq.measure(q0)          # Measure q0
+    )
+    circuit
+
+     # To view the probabilities computed for each Qubit state, you can print the result.
+
+    result = service.run(
+        program=circuit,
+        repetitions=repetitions_count,
+        target="ionq.simulator",
+        timeout_seconds=500 # Set timeout to accommodate queue time on QPU
+    )
+    
+    resultStr = str(result)
+    resultStr = resultStr.split('=')[1]
+    charzero = resultStr.count("0")
+    charone = resultStr.count("1")
+
+    quantum_response = {
+        "result": result,
+        "zero": charzero,
+        "one": charone,
+        "circuit": str(circuit)
+    }
+    return quantum_response
 
 if __name__ == "__main__":
     print("Starting Math Server")

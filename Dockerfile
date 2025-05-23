@@ -17,5 +17,8 @@ EXPOSE 80
 # Make port 443 available to the world outside this container
 EXPOSE 443
 
-# Run app.py when the container launches
+# Run copilot_agents.py when the container launches to run as streamlit app
 CMD ["streamlit", "run", "copilot_agents.py"]
+
+# Run agentsapi.py when the container launches to run as api
+# CMD ["fastapi", "run", "agentsapi.py", "--port", "80"]
