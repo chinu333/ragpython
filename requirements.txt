@@ -55,3 +55,4 @@ jwcrypto
 typing
 asyncclick
 fastapi[standard]
+azure-ai-evaluation
