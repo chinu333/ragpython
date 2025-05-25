@@ -6,7 +6,9 @@ import requests
 from azure.quantum import Workspace
 from azure.quantum.cirq import AzureQuantumService
 import cirq
+import json
 from a2aclient.a2aclient import perform_action
+from azure.ai.evaluation import GroundednessEvaluator, AzureOpenAIModelConfiguration, evaluate, QAEvaluator, RelevanceEvaluator, RetrievalEvaluator
 
 # mcp = FastMCP(
 #     name="Math",
@@ -18,6 +20,9 @@ from a2aclient.a2aclient import perform_action
 env_path = os.path.dirname(os.path.dirname(__file__)) + os.path.sep + 'secrets.env'
 load_dotenv(dotenv_path=env_path)
 
+env_path = os.path.dirname(os.path.dirname(__file__)) + os.path.sep
+print("Environment Path: ", env_path)
+
 azuremapssubskey = os.getenv("AZURE_MAPS_SUBSCRIPTION_KEY")
 azuremapsclientid = os.getenv("AZURE_MAPS_CLIENT_ID")
 # print("Azure Maps Subscription Key: ", azuremapssubskey)
@@ -27,21 +32,25 @@ aviationstackapikey = os.getenv("AVIATION_STACK_API_KEY")
 a2aserverurl = os.getenv("A2A_SERVER_URL")
 azure_quantum_conn_str = os.getenv("AZURE_QUANTUM_CONNECTION_STRING")
 # print("Azure Quantum Connection String: ", azure_quantum_conn_str)
+openaiendpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+openaikey = os.getenv("AZURE_OPENAI_API_KEY")
+openapideploymentname = os.getenv("AZURE_OPENAI_GPT4_DEPLOYMENT_NAME")
+aiapiversion = os.getenv("AZURE_OPENAI_API_VERSION")
 
 
 mcp = FastMCP("MCPServer")
 
-@mcp.tool()
-def add(a: int, b: int) -> int:
-    """Add two numbers"""
-    print("Adding", a, b)
-    return a + b
+# @mcp.tool()
+# def add(a: int, b: int) -> int:
+#     """Add two numbers"""
+#     print("Adding", a, b)
+#     return a + b
 
-@mcp.tool()
-def multiply(a: int, b: int) -> int:
-    """Multiply two numbers"""
-    print("Multiplying", a, b)
-    return a * b
+# @mcp.tool()
+# def multiply(a: int, b: int) -> int:
+#     """Multiply two numbers"""
+#     print("Multiplying", a, b)
+#     return a * b
 
 @mcp.tool()
 def get_weather_info(location):
@@ -107,6 +116,54 @@ async def convert_currency(prompt):
     """
      
     return await perform_action(userPrompt=prompt, agent=a2aserverurl)
+
+@mcp.tool()
+async def evaluate_responses():
+    """
+    Evaluate model responses e.g Retrieval, Groundedness, Relevance, Response Completeness etc.
+    
+    Args:
+        promtp: Prompt for the evaluation.
+
+    Returns:
+        str: Evaluation result in string.
+    """
+    env_path = os.path.dirname(os.path.dirname(__file__)) + os.path.sep
+
+    model_config = AzureOpenAIModelConfiguration(
+        azure_endpoint=openaiendpoint,
+        api_key=openaikey,
+        azure_deployment=openapideploymentname,
+        api_version=aiapiversion,
+    )
+
+    # Initializing Groundedness and Groundedness Pro evaluators
+    groundedness_eval = GroundednessEvaluator(model_config)
+    relevance_eval = RelevanceEvaluator(model_config)
+    retrieval_eval = RetrievalEvaluator(model_config)
+
+    result = evaluate(
+        data=env_path + "/data/evaluation_data.jsonl", # provide your data here
+        evaluators={
+            "groundedness": groundedness_eval,
+            "relevance": relevance_eval,
+            "retrieval": retrieval_eval
+
+        },
+        # column mapping
+        evaluator_config={
+            "default": {
+                "column_mapping": {
+                    "query": "${data.query}",
+                    "context": "${data.context}",
+                    "response": "${data.response}"
+                } 
+            }
+        }
+    )
+
+    evaluation_result = str(json.dumps(result, indent=4))
+    return evaluation_result
 
 @mcp.tool()
 async def execute_quantum_job(repetitions_count):

@@ -119,6 +119,18 @@ The A2AServer included in this repository is a LangGraph implementation adapted 
 2. Run the ```python a2aserver --host 127.0.0.1 --port 3432``` to run (Change the host ip and port)
 3. Configure `A2A_SERVER_URL` environment varibale in `secrets.env`. A2AClient will pick up this URL to connect to the A2AServer
 
+# MCP Inspector
+The MCP Inspector is an interactive developer tool for testing and debugging MCP servers. For details, visit [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
+
+## How to run MCP Inspector
+1. Navigate to ```cd ragpython/mcputils```
+2. Run the ```mcp dev ./mcpserver.py``` to run MCP Inspector
+3. Click on the URL it presented and It will the open the inspector in the browser
+4. Click ```Connect``` to connect with the MCP server
+5. Click ```Tools``` to get the tools page
+6. Click ```List Tools``` to view the tools list
+7. Invoke the tool
+
 # Sameple Questions
 1. RAG: What was Microsoft\'s cloud revenue for 2024? (RAG Agent)
 2. Compare Lucid and Tesla stocks and provide a recommendation for which one to buy. (Financial Advisor Agent)

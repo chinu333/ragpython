@@ -191,12 +191,11 @@ dalle_image_generated = False
 def mcp_agent(prompt):
     """
     Call MCP Server tools to answer questions. It can answer on following questions:
-     1. add
-     2. multiply
-     3. get weather information
-     4. get aviation information (e.g., flight status, timetable etc.)
-     5. convert currency (e.g., USD to EUR)
-     6. Execute a quantum process using QPU (Quantum Processing Unit)
+     1. get weather information
+     2. get aviation information (e.g., flight status, timetable etc.)
+     3. convert currency (e.g., USD to EUR)
+     4. Execute a quantum process using QPU (Quantum Processing Unit)
+     5. Evaluate model responses e.g Retrieval, Groundedness, Relevance, Response Completeness etc.
     
     Args:
         prompt: The user prompt

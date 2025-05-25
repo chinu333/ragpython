@@ -1,7 +1,9 @@
 import json
 import os
-from pathlib import Path  
+from pathlib import Path
 from dotenv import load_dotenv
+from azure.ai.projects import AIProjectClient
+from azure.identity import DefaultAzureCredential
 from azure.ai.evaluation import GroundednessEvaluator, AzureOpenAIModelConfiguration, evaluate, QAEvaluator, RelevanceEvaluator, RetrievalEvaluator
 
 
@@ -27,6 +29,12 @@ relevance_eval = RelevanceEvaluator(model_config)
 retrieval_eval = RetrievalEvaluator(model_config)
 qa_eval = QAEvaluator(model_config=model_config, threshold=3)
 
+# ai_project = {
+#     "subscription_id": "dfbce8c6-7e40-4c00-b0c2-7542f1dd2814",
+#     "resource_group_name": "rg-cchakrabortyai",
+#     "project_name": "mtcatlcc",
+# }
+
 result = evaluate(
     data="./data/evaluation_data.jsonl", # provide your data here
     evaluators={
@@ -45,7 +53,8 @@ result = evaluate(
                 "response": "${data.response}"
             } 
         }
-    }
+    },
+    # azure_ai_project=ai_project
 )
 
 print("Evaluation Result: ", json.dumps(result, indent=4))
