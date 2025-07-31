@@ -11,7 +11,6 @@ SQLAlchemy==2.0.20
 kaleido
 statsmodels
 prophet==1.1.5
-statsmodels==0.14.1
 tabulate==0.9.0
 azure-search-documents==11.4.0
 azure-identity
@@ -44,15 +43,12 @@ asyncio
 nest-asyncio
 pandas
 numpy
-playwright
 azure-monitor-opentelemetry
 azure-cosmos
 qsharp
 rapidocr-onnxruntime
 azure-quantum
 azure-quantum[cirq]
-jwcrypto
 typing
-asyncclick
 fastapi[standard]
 azure-ai-evaluation
