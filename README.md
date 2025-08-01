@@ -31,6 +31,9 @@ The following technologies are utilized in this repository:
 - **Azure AI Search**: Used for storing embedded data and performing advanced RAG, search and retrieval.
 - **Streamlit**: For the UI.
 
+## Agent Request Flow
+![](images/Agent_Request_Flow.png)
+
 ## Agents Description
 
 ### RAG Agent
