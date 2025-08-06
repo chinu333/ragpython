@@ -1,2 +1,7 @@
 [theme]
 base="dark"
+primaryColor="#FF6F61"         # Vibrant coral for highlights
+backgroundColor="#1A1A2E"      # Professional deep blue background
+secondaryBackgroundColor="#16213E" # Slightly lighter for panels
+textColor="#AEE7FF"            # Light text for readability
+font="Source Sans Pro"              # Clean, professional font

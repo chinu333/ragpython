@@ -193,6 +193,22 @@ def upload_binary_to_azure(data: bytes, blob_name: Optional[str] = None,
     client = AzureBlobStorage(container_name=container_name)
     return client.upload_blob(data, blob_name=blob_name, content_type=content_type)
 
+def upload_file_locally(file_bytes: bytes) -> str:
+    """
+    Save bytes as a file locally inside the 'images' folder as 'uploaded_image.png'
+
+    Args:
+        file_bytes: Bytes of the file to save
+
+    Returns:
+        Path to the saved file
+    """
+    dest_path = "./images/uploaded_image.png"
+    with open(dest_path, "wb") as dst:
+        dst.write(file_bytes)
+    return "uploaded_image.png"
+
+
 
 # Example usage
 if __name__ == "__main__":
