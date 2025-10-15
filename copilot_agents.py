@@ -29,7 +29,8 @@ from agents.phi import ask_phi
 from agents.deepseek import ask_deepseek
 from agents.space import get_space_info
 from agents.speech import recognize_from_microphone
-from agents.azurecua import process_cua
+from agents.docintel import extract_text_from_doc
+# from agents.azurecua import process_cua
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
@@ -43,7 +44,7 @@ from streamlit_extras.add_vertical_space import add_vertical_space
 import seaborn as sns
 from streamlit_mermaid import st_mermaid
 import uuid
-from fileuploader import upload_binary_to_azure
+from fileuploader import upload_binary_to_azure, upload_file_locally
 from audio_recorder_streamlit import audio_recorder
 from openai import AzureOpenAI
 import asyncio
@@ -54,8 +55,8 @@ from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry import trace
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.prebuilt import create_react_agent
-from agents.videorag import ask_video_rag
-from evaluation import evaluate_agents
+# from agents.videorag import ask_video_rag
+# from evaluation import evaluate_agents
 
 if __name__ == "__main__":
 
@@ -164,7 +165,7 @@ with st.sidebar:
 2. Compare Lucid and Tesla stocks and provide a recommendation for which one to buy.
 3. Tell me something about Quantum Computing.
 4. What are the total sales broken down by country? Show in a pie chart.
-5. Analyze the architecture diagram image and generate Terraform code for deploying all the resources in Azure. Please put all the resource in one resource group and the use the name rg_agents for the resource group. Image URL: https://ragstorageatl.blob.core.windows.net/miscdocs/WAF.png
+5. Analyze the WAF image and generate Terraform code to deploy all resources in Azure within a single resource group named rg_agents. Choose from the following image names: WAF, Mango, Tax Form, Uploaded Image, Seattle or Space Needle.
 6. What kind of cloth I need to wear today? I am in Atlanta, GA. Please also suggest a couple of stores in Atlanta where I can buy the clothes.
 7. Execute a quantum job with 80 repetitions.
                 
@@ -196,13 +197,14 @@ def mcp_agent(prompt):
      3. convert currency (e.g., USD to EUR)
      4. Execute a quantum process using QPU (Quantum Processing Unit)
      5. Evaluate model responses e.g Retrieval, Groundedness, Relevance, Response Completeness etc.
+     6. Generate video from user prompt.
     
     Args:
         prompt: The user prompt
     
     Returns:
         Result retuned by the MCP Server. Strip all the escape characters from the response.
-    """
+    """        
     return execute_prompt(prompt)
     
 # @tool
@@ -247,6 +249,19 @@ def rag_agent(question):
     return ask_vector_store(question)
 
 @tool
+def docintel_agent(file_name):
+    """
+    Tool to extract text from a given file name.
+    
+    Args:
+        file_name: The name of the file for which the data needs to be extracted
+    
+    Returns:
+        The extracted text from the document.
+    """
+    return extract_text_from_doc(file_name)
+
+@tool
 def video_rag_agent(question):
     """
     Tool to retieve answer from video data stored in vector db.
@@ -260,19 +275,19 @@ def video_rag_agent(question):
     # Return answer from the vector store
     return ask_video_rag(question)
 
-@tool
-def cua_agent(question):
-    """
-    Tool to execute Computer Use Agent (CUA) on the behalf of the user.
+# @tool
+# def cua_agent(question):
+#     """
+#     Tool to execute Computer Use Agent (CUA) on the behalf of the user.
     
-    Args:
-        user prompt.
+#     Args:
+#         user prompt.
     
-    Returns:
-        str: Answer from the CUA agent.
-    """
-    # Return answer from the vector store
-    return process_cua(question)
+#     Returns:
+#         str: Answer from the CUA agent.
+#     """
+#     # Return answer from the vector store
+#     return process_cua(question)
 
 # @tool
 # def weather_agent(location):
@@ -331,12 +346,12 @@ def sql_agent(question):
     return generate_response_from_sql(question)
 
 @tool
-def analyze_image_agent(question, image_url):
+def analyze_image_agent(question, image_file_name):
     """
-    Tool to analyze image mentioned in the image_url.
+    Tool to analyze image mentioned in the image_file name.
     
     Args:
-        User question and the image url
+        User question and the image file name
     
     Returns:
         str: Answer of the user question.
@@ -344,7 +359,7 @@ def analyze_image_agent(question, image_url):
     # Return image analysis text
     global multimodality
     multimodality = True
-    return analyze_image(question, image_url)
+    return analyze_image(question, image_file_name)
 
 @tool
 def mermaid_agent(prompt):
@@ -672,12 +687,12 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            '''You are a helpful customer support assistant for Contoso Inc.
+            '''You are a helpful customer support assistant for Contoso Inc. You have more than 15 agents to assist with various tasks. Invoke agent or agents depending on the question.
             You get the following type of questions from them:
-            - question related to vector store with their own data (RAG) along with the source of the data.
+            - question related to vector store with their own data (RAG) along with the source of the data. 
             - question related to vector store with video data (VIDEO RAG).
             - question related to weather. Respond with the weather information both in celcius and fahrenheit.
-            - question related to recommendation of a particular stock or comparing multiple stocks and provide buy or don't buy opinion. In this case, call 'financial_advisor_agent' and provide the recommendation and the analysis. Stock recommendation can be for any company(s). 
+            - question related to comparing multiple stocks and provide recommendation. In this case, call 'financial_advisor_agent' and provide the recommendation and the analysis. Stock recommendation can be for any company(s). 
             - question related to prediction of the Microsoft stock price for the future date. Do not answer if the prediction is for any other company. Respond with the range of stock prices considering the MSE (Mean Squared Error) of the model. Format the 'disclaimer' word in RED color for 'streamlit' ui text.
             - question related to SQL queries for the structured data
             - question related to data visualization. Just return the answer in text format.
@@ -686,7 +701,9 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - request to send email to the respective receiver with the email address, email subject and the user prompt.
             - question related to traffic between start address and end address. You get the traffic updates in json format. Analyze the json and provide the information in text format.
             - question related to graph database with their own data (GRAPH RAG)
+            - question related to analyzing images. Please use this info for image name to image_file name mapping ['WAF': 'WAF.png', 'Mango':'Mango_4.png', 'Tax Form':'Tax_Form.png', 'Seattle or Space Needle':'Space_Needle.png', 'Uploaded Image':'uploaded_image.png']
             - question or prompt to generate image
+            - question or prompt to extract text from document and respond based on the user question (docintel_agent)
             - question or prompt to generate code in different languages e.g. Python, Java, C++, HTML, Javascript etc. Explain the code as well.
             - question or prompt to search in the web.
             - question related to nutrition info of food. The food item may be attached as an image. Invoke 'analyze_image' agent and pass on the text to 'nutrition_agent' to get the nutrition info. You get the nutrition info in json format. Analyze the json and provide the primary nutrition information in text format.
@@ -736,9 +753,10 @@ part_1_tools = [
     space_info_agent,
     speech_agent,
     mcp_agent,
-    cua_agent,
+    # cua_agent,
     cosmos_agent,
-    video_rag_agent,
+    # video_rag_agent,
+    docintel_agent,
 ]
 
 # Bind the tools to the assistant's workflow
@@ -769,13 +787,13 @@ graph = builder.compile(checkpointer=memory)
 
 # print(graph.get_graph().draw_mermaid())
 mermaid_graph = graph.get_graph().draw_mermaid()
-mermaid_graph = mermaid_graph.replace('fill-opacity:0', 'fill-opacity:1')
-mermaid_graph = mermaid_graph + """
-    linkStyle default stroke-width:2px, stroke:#ffffff
-    linkStyle 0 stroke:#13fa04
-    linkStyle 3 stroke:#04faef
-    linkStyle 4 stroke:#ef04fa
-    """
+# mermaid_graph = mermaid_graph.replace('fill-opacity:0', 'fill-opacity:1')
+# mermaid_graph = mermaid_graph + """
+#     linkStyle default stroke-width:2px, stroke:#ffffff
+#     linkStyle 0 stroke:#13fa04
+#     linkStyle 3 stroke:#04faef
+#     linkStyle 4 stroke:#ef04fa
+#     """
 st_mermaid(mermaid_graph, key="flow", height="300px")
 
 # import shutil
@@ -820,14 +838,16 @@ if user_input and user_input["files"]:
         # To read file as bytes:
         bytes_data = file.getvalue()
         # st.write(bytes_data)
-        binary_url = upload_binary_to_azure(
-            bytes_data, 
-            blob_name=filename,
-            content_type=filetype, 
-            container_name="miscdocs"
-        )
-        print("Binary URL :: ", binary_url)
-        user_questions = [user_input.text + ". Image URL: " + binary_url]
+        # binary_url = upload_binary_to_azure(
+        #     bytes_data, 
+        #     blob_name=filename,
+        #     content_type=filetype, 
+        #     container_name="miscdocs"
+        # )
+        # print("Binary URL :: ", binary_url)
+        image_name = upload_file_locally(bytes_data)
+        print("Image Name :: ", image_name)
+        user_questions = [user_input.text + ". Image : " + image_name]
 
 def get_thread_id():
     """
@@ -951,3 +971,11 @@ for question in user_questions:
             st_mermaid(generated_mermaid_code, key="mermaid", height="600px")
             mermaid_generated = False
             generated_mermaid_code = ''
+        # if video_generated:
+        #     # st.video("data/video.mp4", format="video/mp4", start_time=0)
+        #     video_generated = False
+        #     print("Video generated successfully and saved as 'video.mp4'.")
+        if 'generate_video' in st.session_state:
+            st.video("data/video.mp4", format="video/mp4", start_time=0)
+            st.session_state['generate_video'] = 'false'
+            print("Video generated successfully and saved as 'video.mp4'.")

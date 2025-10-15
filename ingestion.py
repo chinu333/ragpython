@@ -26,7 +26,7 @@ from azure.cosmos import CosmosClient, PartitionKey
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import CharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader, PyMuPDFLoader, CSVLoader, UnstructuredXMLLoader, UnstructuredImageLoader
 from langchain_core.vectorstores import InMemoryVectorStore
 
 
@@ -46,6 +46,7 @@ if __name__ == "__main__":
     embeddingkey = os.getenv("AZURE_OPENAI_EMBEDDING_API_KEY")
     embeddingendpoint = os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT")
     embeddingname = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+    embeddingapiversion = os.getenv("AZURE_OPENAI_EMBEDDING_API_VERSION")
 
     cosmosuri = os.getenv("COSMOS_URI")
     cosmoskey = os.getenv("COSMOS_KEY")
@@ -64,9 +65,18 @@ print(aisearchindexname)
 # Option 2: Use AzureOpenAIEmbeddings with an Azure account
 embeddings: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings(
     azure_deployment=embeddingname,
+    openai_api_version=embeddingapiversion,
     azure_endpoint=embeddingendpoint,
-    api_key=embeddingkey,
+    openai_api_key=embeddingkey
 )
+
+# embeddings = AzureOpenAIEmbeddings(
+#     model="text-embedding-3-large",  # Or your specific embedding model
+#     azure_deployment=embeddingname,
+#     openai_api_version=embeddingapiversion,
+#     azure_endpoint=embeddingendpoint,
+#     openai_api_key=embeddingkey
+# )
 
 # def get_cosmosdb_vector_store():
 #     indexing_policy = {
@@ -128,10 +138,14 @@ vector_store: AzureSearch = AzureSearch(
 in_memory_vector_store = InMemoryVectorStore(embeddings)
 
 # loader = TextLoader("./data/ms10k_2024.txt")
-loader = PyPDFLoader("./data/DLC_PO3.pdf", extract_images=True)
+# loader = PyPDFLoader("./data/Fluor10k_2024.pdf", extract_images=True)
+# loader = PyMuPDFLoader("./data/Caresource-privacy-practices.pdf", extract_images=True)
+# loader = CSVLoader("./data/Regulations.csv", encoding="utf-8")
+loader = UnstructuredXMLLoader("./data/AC.xml")
 
 documents = loader.load()
-text_splitter = CharacterTextSplitter(chunk_size=3025, chunk_overlap=0)
+text_splitter = CharacterTextSplitter(chunk_size=3095, chunk_overlap=100)
+# text_splitter = CharacterTextSplitter(chunk_size=3095, chunk_overlap=100)
 docs = text_splitter.split_documents(documents)
 vector_store.add_documents(documents=docs)
 

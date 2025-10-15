@@ -35,6 +35,8 @@ azure-ai-inference
 nasapy
 azure-storage-file-datalake
 pypdf
+pymupdf
+azure-ai-documentintelligence
 azure-cognitiveservices-speech
 mcp
 langchain-mcp-adapters
@@ -50,5 +52,6 @@ rapidocr-onnxruntime
 azure-quantum
 azure-quantum[cirq]
 typing
+jwcrypto
 fastapi[standard]
 azure-ai-evaluation
