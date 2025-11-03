@@ -130,17 +130,20 @@ def ask_vector_store(question):
     def format_docs(docs):
         # Optionally trim to top 5 after retrieving 50
         trimmed = docs[:len(docs) - 1]
+        # for doc in docs:
         for doc in trimmed:
             source = doc.metadata["source"]
             source = source.replace("./data/", "")
             sources.append(source)
+        # return "\n\n".join(doc.page_content for doc in docs)
         return "\n\n".join(doc.page_content for doc in trimmed)
 
     qa_chain = (
         {
             "context": vector_store.as_retriever(
                 search_type="hybrid",
-                k=50  # broaden recall; format_docs limits to 5
+                k=5  # broaden recall; format_docs limits to 5
+                # k=50
             ) | format_docs,
             "question": RunnablePassthrough(),
         }
