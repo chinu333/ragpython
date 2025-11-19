@@ -41,9 +41,14 @@ class MCPClient:
         )
         
         # Configure server parameters
+        script_path = (Path(__file__).resolve().parent / "mcpserver.py").resolve()
         self.server_params = StdioServerParameters(
             command="python",
             args=["./mcputils/mcpserver.py"],
+            # command=str(sys.executable),    # use the running python binary
+            # args=[str(script_path)],
+            # # optionally set cwd to the script's directory:
+            # cwd=str(script_path.parent),
         )
         
         # Create or get event loop
