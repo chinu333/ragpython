@@ -1,11 +1,17 @@
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
+# Update package lists and install Graphviz
+RUN apt-get update && apt-get install -y graphviz
+
 # Set the working directory in the container
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
 COPY . /app
+
+# RUN pip install pygraphviz --global-option=build_ext --global-option="--include-path=C:\Program Files\Graphviz\include" --global-option="--library-path=C:\Program Files\Graphviz\lib"
+RUN pip install pygraphviz --global-option=build_ext --global-option="--include-path=/usr/include/graphviz" --global-option="--library-path=/usr/lib/graphviz"
 
 # Install any dependencies specified in requirements.txt
 RUN pip install --use-deprecated=legacy-resolver --no-cache-dir --prefer-binary -r requirements.txt
@@ -21,3 +27,6 @@ CMD ["streamlit", "run", "copilot_agents.py"]
 
 # Run agentsapi.py when the container launches to run as api
 # CMD ["fastapi", "run", "agentsapi.py", "--port", "80"]
+
+# Run a2aserver when the container launches
+# CMD ["python", "a2aserver", "--host", "0.0.0.0", "--port", "80"]

@@ -25,6 +25,7 @@ from agents.cosmos import save_to_cosmos
 from mcputils.mcpclient import execute_prompt
 from agents.image_generation import generate_image
 from agents.nutrition import get_nutrition_info
+from agents.diagram.diagramagent import draw
 from agents.phi import ask_phi
 from agents.deepseek import ask_deepseek
 from agents.space import get_space_info
@@ -187,6 +188,7 @@ mermaid_generated = False
 generated_mermaid_code = ''
 multimodality = False
 dalle_image_generated = False
+azure_diagram_generated = False
 
 @tool
 def mcp_agent(prompt):
@@ -235,6 +237,23 @@ def cosmos_agent(prompt, response):
     return save_to_cosmos(prompt, response)
 
 @tool
+def architecture_diagram_agent(prompt):
+    """
+    Tool to draw architecture diagram in Azure.
+    
+    Args:
+        prompt: The user prompt
+    
+    Returns:
+        str: The path to the generated architecture diagram image.
+    """
+
+    drawn_diagram_path = draw(prompt)
+    global azure_diagram_generated
+    azure_diagram_generated = True
+    return drawn_diagram_path
+
+@tool
 def rag_agent(question):
     """
     Tool to retieve answer from custom data stored in vector db.
@@ -261,19 +280,19 @@ def docintel_agent(file_name):
     """
     return extract_text_from_doc(file_name)
 
-@tool
-def video_rag_agent(question):
-    """
-    Tool to retieve answer from video data stored in vector db.
+# @tool
+# def video_rag_agent(question):
+#     """
+#     Tool to retieve answer from video data stored in vector db.
     
-    Args:
-        user question.
+#     Args:
+#         user question.
     
-    Returns:
-        str: Answer from the vector store.
-    """
-    # Return answer from the vector store
-    return ask_video_rag(question)
+#     Returns:
+#         str: Answer from the vector store.
+#     """
+#     # Return answer from the vector store
+#     return ask_video_rag(question)
 
 # @tool
 # def cua_agent(question):
@@ -698,6 +717,7 @@ primary_assistant_prompt = ChatPromptTemplate.from_messages(
             - question related to data visualization. Just return the answer in text format.
             - question related to general information such as computing, entertainment, genenral knowledge etc.
             - question related to generating mermaid js code from user prompt. You explain the diagram in simple language as well.
+            - question related to generating architecture diagrams in Azure based on user prompt. User cam mention the terraform code as well.
             - request to send email to the respective receiver with the email address, email subject and the user prompt.
             - question related to traffic between start address and end address. You get the traffic updates in json format. Analyze the json and provide the information in text format.
             - question related to graph database with their own data (GRAPH RAG)
@@ -757,6 +777,7 @@ part_1_tools = [
     cosmos_agent,
     # video_rag_agent,
     docintel_agent,
+    architecture_diagram_agent,
 ]
 
 # Bind the tools to the assistant's workflow
@@ -971,6 +992,9 @@ for question in user_questions:
             st_mermaid(generated_mermaid_code, key="mermaid", height="600px")
             mermaid_generated = False
             generated_mermaid_code = ''
+        if azure_diagram_generated:
+            st.image('images/architecture_diagram.png')
+            azure_diagram_generated = False
         # if video_generated:
         #     # st.video("data/video.mp4", format="video/mp4", start_time=0)
         #     video_generated = False
