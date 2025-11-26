@@ -5,9 +5,9 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from langchain_community.vectorstores.azuresearch import AzureSearch
-from langchain_community.vectorstores.azure_cosmos_db_no_sql import AzureCosmosDBNoSqlVectorSearch
-from langchain_community.vectorstores.azure_cosmos_db_no_sql import CosmosDBQueryType
-from azure.cosmos import CosmosClient, PartitionKey
+# from langchain_community.vectorstores.azure_cosmos_db_no_sql import AzureCosmosDBNoSqlVectorSearch
+# from langchain_community.vectorstores.azure_cosmos_db_no_sql import CosmosDBQueryType
+# from azure.cosmos import CosmosClient, PartitionKey
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_openai import AzureChatOpenAI
 from langchain.prompts import PromptTemplate

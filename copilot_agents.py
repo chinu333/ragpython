@@ -35,6 +35,7 @@ from agents.docintel import extract_text_from_doc
 from dotenv import load_dotenv
 from pathlib import Path  
 import os
+import base64
 import matplotlib.pyplot as plt
 from azure.core.credentials import AzureKeyCredential
 from langchain_openai import AzureChatOpenAI
@@ -95,6 +96,19 @@ if __name__ == "__main__":
 
 # logger = logging.getLogger("copilot.agents")
 
+# Get background image as base64
+@st.cache_data
+def get_background_image():
+    with open("./images/background.jpg", 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+@st.cache_data
+def get_sidebar_background_image():
+    with open("./images/sidebar_background.jpg", 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
 # initialize chat history in streamlit session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -108,6 +122,16 @@ styl = f"""
     .stTextInput {{
       position: fixed;
       bottom: 3rem;
+    }}
+    .stApp {{
+            background-image: url("data:image/png;base64,{get_background_image()}");
+            background-size: cover;
+            background-attachment: fixed; /* Optional: Makes background fixed during scroll */
+    }}
+    .stSidebar {{
+            background-image: url("data:image/png;base64,{get_sidebar_background_image()}");
+            background-size: cover;
+            background-attachment: fixed; /* Optional: Makes background fixed during scroll */
     }}
 </style>
 """
@@ -807,7 +831,7 @@ graph = builder.compile(checkpointer=memory)
 # evaluate_agents(graph)
 
 # print(graph.get_graph().draw_mermaid())
-mermaid_graph = graph.get_graph().draw_mermaid()
+# mermaid_graph = graph.get_graph().draw_mermaid()
 # mermaid_graph = mermaid_graph.replace('fill-opacity:0', 'fill-opacity:1')
 # mermaid_graph = mermaid_graph + """
 #     linkStyle default stroke-width:2px, stroke:#ffffff
@@ -815,7 +839,7 @@ mermaid_graph = graph.get_graph().draw_mermaid()
 #     linkStyle 3 stroke:#04faef
 #     linkStyle 4 stroke:#ef04fa
 #     """
-st_mermaid(mermaid_graph, key="flow", height="300px")
+# st_mermaid(mermaid_graph, key="flow", height="300px")
 
 # import shutil
 import uuid

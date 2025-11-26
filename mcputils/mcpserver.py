@@ -1,10 +1,12 @@
+from typing import Annotated
 from mcp.server.fastmcp import FastMCP
 import os
 from dotenv import load_dotenv
-from geopy.geocoders import Nominatim
+# from geopy.geocoders import Nominatim
+from pydantic import Field
 import requests
-from azure.quantum import Workspace
-from azure.quantum.cirq import AzureQuantumService
+# from azure.quantum import Workspace
+# from azure.quantum.cirq import AzureQuantumService
 # from azure.quantum.qiskit import AzureQuantumProvider
 # from qiskit import QuantumCircuit
 import json
@@ -20,9 +22,6 @@ from a2aclient.a2aclient import perform_action
 
 env_path = os.path.dirname(os.path.dirname(__file__)) + os.path.sep + 'secrets.env'
 load_dotenv(dotenv_path=env_path)
-
-env_path = os.path.dirname(os.path.dirname(__file__)) + os.path.sep
-print("Environment Path: ", env_path)
 
 azuremapssubskey = os.getenv("AZURE_MAPS_SUBSCRIPTION_KEY")
 azuremapsclientid = os.getenv("AZURE_MAPS_CLIENT_ID")
@@ -54,8 +53,16 @@ mcp = FastMCP("MCPServer")
 #     return a * b
 
 @mcp.tool()
-def get_weather_info(location):
-    """Get the weather info for location."""
+def get_weather_info(location: Annotated[str, Field(description="City, state or address to look up")]) -> dict:
+    """
+    Get the weather info for location.
+    
+    Args:
+        location: City, state or address to look up.
+
+    Returns:
+        json: Weather information.
+    """
     
     address=location
     # geolocator = Nominatim(user_agent="Dummy")
@@ -103,10 +110,10 @@ def get_weather_info(location):
         return response.json()
 
     except requests.exceptions.RequestException as e:
-        print(f"An error occurred: {e}")
+        return (f"An error occurred: {e}")
 
 @mcp.tool()
-def get_flight_status(flight_number):
+def get_flight_status(flight_number: Annotated[str, Field(description="Flight number (e.g., 'DL123')")]) -> dict:
     """
     Get flight information for a flight number using AviationStack API.
     
@@ -116,7 +123,7 @@ def get_flight_status(flight_number):
     Returns:
         json: Flight information.
     """
-    print("Flight Info: ", flight_number)
+    # print("Flight Info: ", flight_number)
     
     url = f"https://api.aviationstack.com/v1/flights?access_key={aviationstackapikey}&flight_iata={flight_number}"
     
@@ -128,12 +135,12 @@ def get_flight_status(flight_number):
         raise Exception(f"Error fetching flight status: {response.status_code} - {response.text}")
     
 @mcp.tool()
-async def convert_currency(prompt):
+async def convert_currency(prompt: Annotated[str, Field(description="Prompt for the currency conversion")]) -> dict:
     """
     Convert currency from USD to EUR.
     
     Args:
-        promtp: Prompt for the currency conversion.
+        prompt: Prompt for the currency conversion.
 
     Returns:
         str: Information after the conversion.
@@ -254,66 +261,66 @@ async def convert_currency(prompt):
     # print("Result:", result)
     # return result
 
-@mcp.tool()
-async def generate_video(prompt):
-    """
-    Generate video from user prompt.
+# @mcp.tool()
+# async def generate_video(prompt):
+#     """
+#     Generate video from user prompt.
     
-    Args:
-        promtp: Prompt for the video generation.
+#     Args:
+#         promtp: Prompt for the video generation.
 
-    Returns:
-        str: Generated video URL, if the generation is successful.
-    """
+#     Returns:
+#         str: Generated video URL, if the generation is successful.
+#     """
      
-    api_version = 'preview'
-    headers= { "api-key": openaikey, "Content-Type": "application/json" }
+#     api_version = 'preview'
+#     headers= { "api-key": openaikey, "Content-Type": "application/json" }
 
-    # 1. Create a video generation job
-    create_url = f"{openaiendpoint}/openai/v1/video/generations/jobs?api-version={api_version}"
-    body = {
-        "prompt": prompt,
-        "width": 480,
-        "height": 480,
-        "n_seconds": 5,
-        "model": "sora"
-    }
-    response = requests.post(create_url, headers=headers, json=body)
-    response.raise_for_status()
-    print("Full response JSON:", response.json())
-    job_id = response.json()["id"]
-    print(f"Job created: {job_id}")
+#     # 1. Create a video generation job
+#     create_url = f"{openaiendpoint}/openai/v1/video/generations/jobs?api-version={api_version}"
+#     body = {
+#         "prompt": prompt,
+#         "width": 480,
+#         "height": 480,
+#         "n_seconds": 5,
+#         "model": "sora"
+#     }
+#     response = requests.post(create_url, headers=headers, json=body)
+#     response.raise_for_status()
+#     print("Full response JSON:", response.json())
+#     job_id = response.json()["id"]
+#     print(f"Job created: {job_id}")
 
-    # 2. Poll for job status
-    status_url = f"{openaiendpoint}/openai/v1/video/generations/jobs/{job_id}?api-version={api_version}"
-    status=None
-    while status not in ("succeeded", "failed", "cancelled"):
-        time.sleep(5)  # Wait before polling again
-        status_response = requests.get(status_url, headers=headers).json()
-        status = status_response.get("status")
-        print(f"Job status: {status}")
+#     # 2. Poll for job status
+#     status_url = f"{openaiendpoint}/openai/v1/video/generations/jobs/{job_id}?api-version={api_version}"
+#     status=None
+#     while status not in ("succeeded", "failed", "cancelled"):
+#         time.sleep(5)  # Wait before polling again
+#         status_response = requests.get(status_url, headers=headers).json()
+#         status = status_response.get("status")
+#         print(f"Job status: {status}")
 
-    # 3. Retrieve generated video 
-    if status == "succeeded":
-        generations = status_response.get("generations", [])
-        if generations:
-            print(f"Video generation succeeded.")
-            generation_id = generations[0].get("id")
-            video_url = f"{openaiendpoint}/openai/v1/video/generations/{generation_id}/content/video?api-version={api_version}"
-            print(f"Video URL: {video_url}")
-            # return video_url
-            video_response = requests.get(video_url, headers=headers)
-            if video_response.ok:
-                output_filename = "./data/video.mp4"
-                with open(output_filename, "wb") as file:
-                    file.write(video_response.content)
-            return f"Video generated successfully and saved as 'video.mp4'. URL: {video_url}"
-        else:
-            raise Exception("No generations found in job result.", {video_url})
-    else:
-        raise Exception(f"Job didn't succeed. Status: {status}")
+#     # 3. Retrieve generated video 
+#     if status == "succeeded":
+#         generations = status_response.get("generations", [])
+#         if generations:
+#             print(f"Video generation succeeded.")
+#             generation_id = generations[0].get("id")
+#             video_url = f"{openaiendpoint}/openai/v1/video/generations/{generation_id}/content/video?api-version={api_version}"
+#             print(f"Video URL: {video_url}")
+#             # return video_url
+#             video_response = requests.get(video_url, headers=headers)
+#             if video_response.ok:
+#                 output_filename = "./data/video.mp4"
+#                 with open(output_filename, "wb") as file:
+#                     file.write(video_response.content)
+#             return f"Video generated successfully and saved as 'video.mp4'. URL: {video_url}"
+#         else:
+#             raise Exception("No generations found in job result.", {video_url})
+#     else:
+#         raise Exception(f"Job didn't succeed. Status: {status}")
 
 if __name__ == "__main__":
-    print("Starting Math Server")
+    # print("Starting Math Server")
     mcp.run(transport="stdio")
     # get_weather_info("Atlanta, GA")

@@ -4,6 +4,7 @@ from langchain_mcp_adapters.tools import load_mcp_tools
 from langgraph.prebuilt import create_react_agent
 from pathlib import Path  
 import os
+import sys
 from dotenv import load_dotenv
 from langchain_openai import AzureChatOpenAI
 import asyncio
@@ -43,12 +44,12 @@ class MCPClient:
         # Configure server parameters
         script_path = (Path(__file__).resolve().parent / "mcpserver.py").resolve()
         self.server_params = StdioServerParameters(
-            command="python",
-            args=["./mcputils/mcpserver.py"],
-            # command=str(sys.executable),    # use the running python binary
-            # args=[str(script_path)],
+            # command="python",
+            # args=["./mcputils/mcpserver.py"],
+            command=str(sys.executable),    # use the running python binary
+            args=[str(script_path)],
             # # optionally set cwd to the script's directory:
-            # cwd=str(script_path.parent),
+            cwd=str(script_path.parent),
         )
         
         # Create or get event loop
@@ -145,8 +146,8 @@ def execute_prompt(prompt):
 if __name__ == "__main__":
     result = execute_prompt("what's (3 + 5) x 12?")
     print(f"Result: {result}")
-    # result = execute_prompt("How is the weather in Kolkata today?")
-    # print(f"Weather Result: {result}")
+    result = execute_prompt("How is the weather in Kolkata today?")
+    print(f"Weather Result: {result}")
     # result = execute_prompt("Execute a quantum job with 80 repetitions.")
     # print(f"Quantum Process Result: {result}")
 

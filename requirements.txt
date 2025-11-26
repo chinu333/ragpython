@@ -16,8 +16,8 @@ azure-search-documents==11.4.0
 azure-identity
 langchain==0.3.4
 langchain-openai==0.2.3
-langchain-community
-langgraph
+langchain-community==0.3.3
+langgraph==0.3.24
 langsmith
 pydantic==2.7.4
 geopy
@@ -39,7 +39,7 @@ pymupdf
 azure-ai-documentintelligence
 azure-cognitiveservices-speech
 mcp
-langchain-mcp-adapters
+langchain-mcp-adapters==0.0.4
 audio-recorder-streamlit
 asyncio
 nest-asyncio
