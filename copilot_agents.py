@@ -201,7 +201,7 @@ with st.sidebar:
     st.write('')
     st.write('')
 
-    st.markdown('#### Created by Chinmoy C., 2025')
+    st.markdown('#### Created by Chinmoy C., 2026')
 
 user_input= st.chat_input("You:",
     accept_file=True,
